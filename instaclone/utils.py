@@ -79,7 +79,7 @@ def move_to_backup(path, backup_suffix=BACKUP_SUFFIX):
   """
   Move the given file or directory to the same name, with a backup suffix.
   If backup_suffix not supplied, move it to the extension ".bak".
-  If backup_suffix is supplied and is None, don't do anything.
+  NB: If backup_suffix is supplied and is None, don't do anything.
   """
   if backup_suffix and os.path.exists(path):
     backup_path = path + backup_suffix
@@ -171,6 +171,7 @@ def copyfile_atomic(source_path, dest_path, make_parents=False, backup_suffix=No
 def copytree_atomic(source_path, dest_path, make_parents=False, backup_suffix=None, symlinks=False):
   """
   Copy a file or directory recursively, and atomically, reanaming file or top-level dir when done.
+  Unlike shutil.copytree, this will not fail on a file.
   """
   if os.path.isdir(source_path):
     with atomic_output_file(dest_path, make_parents=make_parents, backup_suffix=backup_suffix) as tmp_path:

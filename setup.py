@@ -10,7 +10,7 @@ setup(
   author="Joshua Levy",
   license="Apache 2",
   url="https://github.com/jlevy/instaclone",
-  install_requires=["enum34>=1.0.4", "PyYAML>=3.11"],
+  install_requires=["enum34>=1.0.4", "PyYAML>=3.11", "subprocess32>=3.2.6"],
   description=instaclone.DESCRIPTION,
   long_description=instaclone.LONG_DESCRIPTION,
   classifiers=[

@@ -24,13 +24,13 @@ except ImportError:
 
 import configs
 from utils import atomic_output_file, copyfile_atomic, write_string_to_file, DEV_NULL
-from utils import copytree_atomic, rmtree_or_file, file_sha1
+from utils import move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1
 from utils import make_all_dirs, make_parent_dirs
 from utils import shell_expand_to_popen
 from log_calls import log_calls
 
 NAME = "instaclone"
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 DESCRIPTION = "instaclone: Fast, cached installations of versioned files"
 LONG_DESCRIPTION = __doc__
 
@@ -58,20 +58,20 @@ class AppError(RuntimeError):
 
 def _upload_file(command_template, local_path, remote_loc):
   popenargs = shell_expand_to_popen(command_template, {"REMOTE": remote_loc, "LOCAL": local_path})
-  log.info("upload: %s", " ".join(popenargs))
-  # TODO: Find a way to support force here.
+  log.info("uploading: %s", " ".join(popenargs))
+  # TODO: Find a way to support force here (e.g. add or remove -f to s4cmd)
   subprocess.check_call(popenargs, stdout=LOG_STREAM, stderr=LOG_STREAM, stdin=DEV_NULL)
 
 
 def _download_file(command_template, remote_loc, local_path):
   with atomic_output_file(local_path, make_parents=True) as temp_target:
     popenargs = shell_expand_to_popen(command_template, {"REMOTE": remote_loc, "LOCAL": temp_target})
-    log.info("download: %s", " ".join(popenargs))
+    log.info("downloading: %s", " ".join(popenargs))
     # TODO: Find a way to support force here.
     subprocess.check_call(popenargs, stdout=LOG_STREAM, stderr=LOG_STREAM, stdin=DEV_NULL)
 
 # For simplicity, we only support zip compression.
-# TODO: Note zip/unzip by default follows symlinks, so they are embedded. Consider making this a flag.
+# TODO: Note zip/unzip by default follows symlinks, so full contents are included. Consider making this a flag.
 
 ARCHIVE_SUFFIX = ".zip"
 
@@ -87,7 +87,8 @@ def _compress_dir(local_dir, archive_path, force=False):
     make_parent_dirs(temp_archive)
     popenargs = shell_expand_to_popen("zip -q -r $ARCHIVE $DIR", {"ARCHIVE": temp_archive, "DIR": "."})
     cd_to = local_dir
-    log.info("compress (in %s): %s", cd_to, " ".join(popenargs))
+    log.debug("using cwd: %s", cd_to)
+    log.info("compress: %s", " ".join(popenargs))
     subprocess.check_call(popenargs, cwd=cd_to, stdout=LOG_STREAM, stderr=LOG_STREAM, stdin=DEV_NULL)
 
 
@@ -102,20 +103,24 @@ def _decompress_dir(archive_path, local_dir, force=False):
     popenargs = shell_expand_to_popen("unzip -q $ARCHIVE", {"ARCHIVE": archive_path, "DIR": temp_dir})
     make_all_dirs(temp_dir)
     cd_to = temp_dir
-    log.info("decompress (in %s): %s", cd_to, " ".join(popenargs))
+    log.debug("using cwd: %s", cd_to)
+    log.info("decompress: %s", " ".join(popenargs))
     subprocess.check_call(popenargs, cwd=cd_to, stdout=LOG_STREAM, stderr=LOG_STREAM, stdin=DEV_NULL)
 
 
 @log_calls
-def _install_from_cache(cache_path, target_path, copy_type, clobber=False):
+def _install_from_cache(cache_path, target_path, copy_type, force=False, make_backup=False):
   """
   Install a file or directory from cache, either symlinking, hardlinking, or copying.
   """
   # For now, we don't keep any backups.
   def checked_remove():
     if os.path.exists(target_path):
-      if clobber:
-        rmtree_or_file(target_path)
+      if force:
+        if make_backup:
+          move_to_backup(target_path)
+        else:
+          rmtree_or_file(target_path)
       else:
         raise AppError("target already exists: %s" % target_path)
 
@@ -153,15 +158,19 @@ class FileCache(object):
     self.root_path = root_path.rstrip("/")
     self.contents_path = os.path.join(root_path, "contents")
     self.version_path = os.path.join(root_path, "version")
+    self.setup_done = False
     assert os.path.exists(self.root_path)
 
   def setup(self):
-    if os.path.exists(self.version_path):
-      log.info("using cache: %s", self.root_path)
-    else:
-      log.info("initializing new cache: %s", self.root_path)
-      make_all_dirs(self.contents_path)
-      write_string_to_file(self.version_path, FileCache.version + "\n")
+    """Lazy initialize file cache post instantiation."""
+    if not self.setup_done:
+      if os.path.exists(self.version_path):
+        log.info("using cache: %s", self.root_path)
+      else:
+        log.info("initializing new cache: %s", self.root_path)
+        make_all_dirs(self.contents_path)
+        write_string_to_file(self.version_path, FileCache.version + "\n")
+      self.setup_done = True
 
   def __str__(self):
     return "FileCache@%s" % self.root_path
@@ -171,7 +180,9 @@ class FileCache(object):
 
   @staticmethod
   def versioned_path(config, version, suffix=""):
-    return "%s%s%s%s%s" % (config.remote_path, VERSION_SEP, version, VERSION_END, suffix)
+    return os.path.join(config.remote_path,
+                        "%s%s%s%s" % (config.local_path, VERSION_SEP, version, VERSION_END),
+                        "%s%s" % (os.path.basename(config.local_path), suffix))
 
   @staticmethod
   def pathify_remote_loc(remote_loc):
@@ -193,22 +204,36 @@ class FileCache(object):
   def publish(self, config, version, force=False):
     self.setup()
     local_path = config.local_path
+    cached_path = self.cache_path(config, version)
+    # Directories are archived. Files are published as is.
     if os.path.isdir(local_path):
       cached_archive = self.cache_path(config, version, ARCHIVE_SUFFIX)
-      _compress_dir(local_path, cached_archive, force=force)
       remote_loc = self.remote_loc(config, version, ARCHIVE_SUFFIX)
+
+      # We archive and then unarchive, to make sure we expand symlinks exactly the way
+      # a future installation would (using zip/unzip).
+      # TODO: This is usually what we want (think of relative symlinks like ../../foo), but we could make it an option.
+      log.info("installing to cache: %s -> %s", local_path, cached_path)
+      _compress_dir(local_path, cached_archive, force=force)
       _upload_file(config.upload_command, cached_archive, remote_loc)
-      log.info("published directory: %s -> %s -> %s", config.local_path, cached_archive, remote_loc)
+      _decompress_dir(cached_archive, cached_path, force=force)
+      # Leave the previous version of the tree as a backup.
+      log.debug("installing back from cache: %s <- %s", local_path, cached_path)
+      _install_from_cache(cached_path, local_path, config.copy_type, force=True, make_backup=True)
+      log.info("published directory archive: %s -> %s", config.local_path, remote_loc)
     elif os.path.isfile(local_path):
-      cached_path = self.cache_path(config, version)
-      # TODO: Consider moving+symlinking or hardlinking depending on cache type.
-      copyfile_atomic(local_path, cached_path)
       remote_loc = self.remote_loc(config, version)
+
+      log.info("installing to cache: %s -> %s", local_path, cached_path)
+      # For speed on large files, move it rather than copy.
+      movefile(local_path, cached_path, make_parents=True)
       _upload_file(config.upload_command, cached_path, remote_loc)
-      log.info("published file: %s -> %s -> %s", config.local_path, cached_path, remote_loc)
+      log.debug("installing back from cache: %s <- %s", local_path, cached_path)
+      _install_from_cache(cached_path, local_path, config.copy_type, force=False, make_backup=False)
+      log.info("published file: %s -> %s", config.local_path, remote_loc)
     elif os.path.exists(local_path):
       # TODO: Consider handling symlinks.
-      raise ValueError("file type not supported: %s" % local_path)
+      raise ValueError("only files or directories supported: %s" % local_path)
     else:
       raise ValueError("file not found: %s" % local_path)
 
@@ -219,7 +244,7 @@ class FileCache(object):
     if os.path.exists(cached_path):
       # It's a cached file or a cached directory and we've already unpacked it.
       log.info("installing from cache: %s <- %s", config.local_path, cached_path)
-      _install_from_cache(cached_path, config.local_path, config.copy_type, clobber=force)
+      _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
     else:
       # First try it as a directory/archive.
       remote_archive_loc = self.remote_loc(config, version, ARCHIVE_SUFFIX)
@@ -229,7 +254,7 @@ class FileCache(object):
       log.debug("checking if it's a directory by seeing if archive suffix exits")
       try:
         _download_file(config.download_command, remote_archive_loc, cached_archive_path)
-      except subprocess.CalledProcessError as e:
+      except subprocess.CalledProcessError:
         log.debug("doesn't look like an archived directory, so treating it as a file")
         is_dir = False
       if is_dir:
@@ -240,7 +265,7 @@ class FileCache(object):
         log.info("installing file: %s <- %s <- %s", config.local_path, cached_path, remote_loc)
         _download_file(config.download_command, remote_loc, cached_path)
 
-      _install_from_cache(cached_path, config.local_path, config.copy_type, clobber=force)
+      _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
 
   @log_calls
   def purge(self):
@@ -312,11 +337,13 @@ if __name__ == '__main__':
 
 # TODO:
 # - add platform or other info to version
+# - expand environment variables in all commands, for convenience
 # - with configs, OrderedDict hack on yaml lib doesn't seem to be preserving item order
 # - "clean" command that deletes local resources (requiring -f if not in cache)
-# - list command to show all configs
+# - "unpublish" command that deletes a remote resource (and purges from cache)
+# - support compressing files as well as archives
+# - consider a pax-based hardlink tree copy option (since pax is cross platform, unlike cp's options)
 # - init command to generate a config
-# - checkconfig command to validate all deps are in place
-# - local-only mode (i.e. offline mode -- will fail if it has to download)
-# - customize transport commands (s3cmd, awscli, wget, etc.)
-# - for the custom transport like curl, figure out handling of shell redirects
+# - "--offline" mode for install (i.e. will fail if it has to download)
+# - test out more custom transport commands (s3cmd, awscli, wget, etc.)
+# - for the custom transport like curl, figure out handling of shell redirects (or just require)
