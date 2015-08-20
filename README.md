@@ -37,24 +37,26 @@ you want in different directories, just making sure `remote_path`s are unique.
 ```yml
 ---
 items:
-  #  big file lives in this directory. It takes a while to generate, so we're going to
+  # A big file lives in this directory. It takes a while to generate, so we're going to
   # reference it here by version, and update the version manually when we regenerate.
   - local_path: my-big-and-occasionally-generated-resource.bin
     remote_path: some/big-resources
     remote_prefix: s3://my-bucket/instaclone-resources
-    version: 4
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
     copy_type: symlink
+    # This is the version string:
+    version: 4
+
   - local_path: node_modules
     remote_path: my-app/node-stuff
     remote_prefix: s3://my-bucket/instaclone-resources
-    # We generate the version as a hash of the npm-shrinkwrap.json plus the architecture we're on:
-    version_hashable: npm-shrinkwrap.json
-    version_command: uname
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
     copy_type: symlink
+    # We generate the version as a hash of the npm-shrinkwrap.json plus the architecture we're on:
+    version_hashable: npm-shrinkwrap.json
+    version_command: uname
 ```
 
 See below for more on the `node_modules` one.
