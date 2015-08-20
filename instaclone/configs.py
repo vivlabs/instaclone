@@ -18,12 +18,13 @@ from log_calls import log_calls
 import utils
 
 _required_fields = "local_path remote_path remote_prefix copy_type upload_command download_command"
-_other_fields = "version version_hashable"
+_other_fields = "version version_hashable version_command"
 
 ConfigBase = namedtuple("ConfigBase", _other_fields + " " + _required_fields)
 
 CONFIGS_REQUIRED = _required_fields.split()
 
+CONFIG_VERSION_RE = re.compile("^[\\w.-]+$")
 
 def _stringify_config_field(value):
   return value.name if isinstance(value, Enum) else str(value)
@@ -122,10 +123,10 @@ def _parse_validate(raw_config_list):
       if key not in raw or raw[key] is None:
         raise ConfigError("must specify '%s' in item config: %s" % (key, raw))
 
-    if "version" in raw and not re.compile("^[\\w.-]+$").match(str(raw["version"])):
+    if "version" in raw and not CONFIG_VERSION_RE.match(str(raw["version"])):
       raise ConfigError("invalid version string: '%s'" % raw["version"])
-    if "version" not in raw and "version_hashable" not in raw:
-      raise ConfigError("must specify 'version' or 'version_hashable' in item config: %s" % raw)
+    if "version" not in raw and "version_hashable" not in raw and "version_command" not in raw:
+      raise ConfigError("must specify 'version', 'version_hashable', or 'version_command' in item config: %s" % raw)
 
     # Validate shell templates.
     for key in "upload_command", "download_command":

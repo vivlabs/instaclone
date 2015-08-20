@@ -30,7 +30,7 @@ from utils import shell_expand_to_popen
 from log_calls import log_calls
 
 NAME = "instaclone"
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 DESCRIPTION = "instaclone: Fast, cached installations of versioned files"
 LONG_DESCRIPTION = __doc__
 
@@ -277,11 +277,21 @@ def version_for(config):
   """
   The version for an item is either the explicit version specified by the user, or the SHA1 hash of hashable file.
   """
+  bits = []
   if config.version:
-    return config.version
-  else:
+    bits.append(str(config.version))
+  if config.version_hashable:
     log.debug("computing sha1 of: %s", config.version_hashable)
-    return file_sha1(config.version_hashable)
+    bits.append(file_sha1(config.version_hashable))
+  if config.version_command:
+    log.debug("version command: %s", config.version_command)
+    popenargs = shell_expand_to_popen(config.version_command, {})
+    output = subprocess.check_output(popenargs, stderr=LOG_STREAM, stdin=DEV_NULL).strip()
+    if not configs.CONFIG_VERSION_RE.match(output):
+      raise configs.ConfigError("invalid version output from version command: '%s'" % output)
+    bits.append(output)
+
+  return "-".join(bits)
 
 #
 # ---- Command line ----
@@ -336,9 +346,7 @@ if __name__ == '__main__':
 
 
 # TODO:
-# - add platform or other info to version
 # - expand environment variables in all commands, for convenience
-# - with configs, OrderedDict hack on yaml lib doesn't seem to be preserving item order
 # - "clean" command that deletes local resources (requiring -f if not in cache)
 # - "unpublish" command that deletes a remote resource (and purges from cache)
 # - support compressing files as well as archives
