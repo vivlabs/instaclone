@@ -83,9 +83,12 @@ def move_to_backup(path, backup_suffix=BACKUP_SUFFIX):
   """
   if backup_suffix and os.path.exists(path):
     backup_path = path + backup_suffix
+    # Some messy corner cases need to be handled for existing backups.
     # TODO: Note if this is a directory, and we do this twice at once, there is a potential race
     # that could leave one backup inside the other.
-    if os.path.isdir(backup_path):
+    if os.path.islink(backup_path):
+      os.unlink(backup_path)
+    elif os.path.isdir(backup_path):
       shutil.rmtree(backup_path)
     shutil.move(path, backup_path)
 

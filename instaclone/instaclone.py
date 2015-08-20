@@ -30,7 +30,7 @@ from utils import shell_expand_to_popen
 from log_calls import log_calls
 
 NAME = "instaclone"
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 DESCRIPTION = "instaclone: Fast, cached installations of versioned files"
 LONG_DESCRIPTION = __doc__
 
@@ -202,9 +202,14 @@ class FileCache(object):
 
   @log_calls
   def publish(self, config, version, force=False):
-    self.setup()
     local_path = config.local_path
     cached_path = self.cache_path(config, version)
+
+    if os.path.islink(local_path):
+      raise AppError("cannot publish symlinks (is path already published?): %s" % local_path)
+
+    self.setup()
+
     # Directories are archived. Files are published as is.
     if os.path.isdir(local_path):
       cached_archive = self.cache_path(config, version, ARCHIVE_SUFFIX)
@@ -349,6 +354,7 @@ if __name__ == '__main__':
 # - expand environment variables in all commands, for convenience
 # - "clean" command that deletes local resources (requiring -f if not in cache)
 # - "unpublish" command that deletes a remote resource (and purges from cache)
+# - command to unpublish all but most recent n versions of a resource
 # - support compressing files as well as archives
 # - consider a pax-based hardlink tree copy option (since pax is cross platform, unlike cp's options)
 # - init command to generate a config
