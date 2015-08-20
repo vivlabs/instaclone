@@ -2,11 +2,11 @@
 
 Instaclone is a simple, configurable command-line tool to publish and then later re-install files or directories, using S3 or other services as a backing store, and keeping local caches to optimize re-installation speed for repeated installations.
 
-To be more concrete, think of it as a way to publish and install files to and from S3, while also maintaining a local cache so download is essentially instant when doing it a second time. But with some additional abilities to customize.
+Think of it as a way to publish and install versions of files to and from S3, while maintaining a local cache so download is essentially instant when doing it a second time.
 
-It's good for files you want to version but not check into git (due to size, sensitivity, platform-dependence, etc.). You git-ignore them and install them with Instaclone, and instead version the Instaclone configuration that references them.
+It's good for files you want to version but not check into Git (due to size, sensitivity, platform-dependence, etc.). You git-ignore them and install them with Instaclone, and instead version the Instaclone configuration that references them.
 
-In particular, it helps fix a pain point with `npm install` and `npm shrinkwrap` slowness on build systems. If you use this with shrinkwrap, you can switch back and forth between branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Or your colleage can pull, run `instaclone install` and get a byte-for-byte exact copy of your `node_modules`. (See below for more on this.)
+In particular, it helps fix a pain point with `npm install` slowness on build systems. If you use this with `npm shrinkwrap`, you can switch back and forth between branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Or your colleage can pull, run `instaclone install` and get a byte-for-byte exact copy of your `node_modules`. (See below for more on this.)
 
 ## Goals
 
