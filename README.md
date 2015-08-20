@@ -2,7 +2,9 @@
 
 Instaclone is a simple, configurable command-line tool to publish and then later re-install files or directories, using S3 or other services as a backing store, and keeping local caches to optimize re-installation speed for repeated installations.
 
-In particular, it helps fix a pain point with `npm install` and `npm shrinkwrap` slowness on build systems.
+To be more concrete, think of it as a way to publish and install files to and from S3, while also maintaining a local cache so download is essentially instant when doing it a second time. But with some additional abilities to customize.
+
+In particular, it helps fix a pain point with `npm install` and `npm shrinkwrap` slowness on build systems, as discussed below.
 
 ## Goals
 
