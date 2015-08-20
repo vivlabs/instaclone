@@ -13,12 +13,11 @@ In particular, it helps fix a pain point with `npm install` and `npm shrinkwrap`
 - Support for publishing and installing large files and directory trees of many files.
 - Manage multiple immutable versions of each file/directory.
 - Local caching of items, so it's very fast to re-install a previously installed item (a single symlink).
-- External authentication and transport, using whatever backing storage system desired (so you don't have to worry about configuring credentials just for this tool, and can publish to S3 or elsewhere).
+- Configurability. External authentication and transport, using whatever backing storage system desired (so you don't have to worry about configuring credentials just for this tool, and can publish to S3 or elsewhere).
 - Simplicity.
 
 ## Features
 
-- 
 - Configurable to use [`s4cmd`](https://github.com/bloomreach/s4cmd) or any other command-line tool to upload and download files to wherever you want in S3.
 - Configurable ways to manage versions, including one or more of:
   - Explicit (you the version to install)
@@ -38,7 +37,7 @@ you want in different directories, just making sure `remote_path`s are unique.
 ```yml
 ---
 items:
-  # This big file lives in this directory. It takes a while to generate, so we're going to
+  #  big file lives in this directory. It takes a while to generate, so we're going to
   # reference it here by version, and update the version manually when we regenerate.
   - local_path: my-big-and-occasionally-generated-resource.bin
     remote_path: some/big-resources
@@ -47,17 +46,18 @@ items:
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
     copy_type: symlink
-  # See below for more explanation of this one.
   - local_path: node_modules
     remote_path: my-app/node-stuff
     remote_prefix: s3://my-bucket/instaclone-resources
-    # We generate the version as a hash of the npm-shrinkwrap.json plus the architecture we're on.
+    # We generate the version as a hash of the npm-shrinkwrap.json plus the architecture we're on:
     version_hashable: npm-shrinkwrap.json
     version_command: uname
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
     copy_type: symlink
 ```
+
+See below for more on the `node_modules` one.
 
 ## Maturity
 
