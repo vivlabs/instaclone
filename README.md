@@ -6,7 +6,7 @@ Think of it as a way to publish and install versions of files to and from S3, wh
 
 It's good for files you want to version but not check into Git (due to size, sensitivity, platform-dependence, etc.). You git-ignore them and install them with Instaclone, and instead version the Instaclone configuration that references them.
 
-In particular, it helps fix a pain point with `npm install` slowness on build systems. If you use this with `npm shrinkwrap`, you can switch back and forth between branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Or your colleage can pull, run `instaclone install` and get a byte-for-byte exact copy of your `node_modules`. See below for more on this.
+In particular, it helps fix a pain point with `npm install` being slow and hard to reproduce. If you use this with `npm shrinkwrap`, you can switch back and forth between branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Or your colleage can pull, run `instaclone install` and get a byte-for-byte exact copy of your `node_modules`. Or your build system can often do the equivalent of `npm install` instantly. See below for more on this.
 
 ## Goals
 
@@ -95,13 +95,13 @@ This use case takes a little explanation. Having fast and reproducible runs of `
   [all](http://javascript.tutorialhorizon.com/2015/03/21/what-is-npm-shrinkwrap-and-when-is-it-needed/)
   [know](http://tilomitra.com/why-you-should-use-npm-shrinkwrap/),
   the state of the `node_modules` is not inherently reproducible from the `package.json` file.
-- Using `npm shrinkwrap` helps lock down exact package versions, but even this doesn't completely guarantee byte-for-byte repeatable installations if you're relying on the npm.org server.
+- Using `npm shrinkwrap` helps lock down exact package versions, but even this doesn't completely guarantee byte-for-byte repeatable installations if you're relying on the npmjs.org server.
 - Downloading from the global server, and even installing from the local cache, take a lot of time, e.g if you want to do rapid CI builds from a clean install.
 - Operationally, you also want a more scalable solution to distributing packages than hitting npmjs.org every time (you don't want lots of servers or build machines doing this continuously).
 - You can set up a [local npm cache server](https://github.com/mixu/npm_lazy) but this is more infrastructure to maintain (which, incidentally, is likely to be a single point of failure that you have to maintain and scale).
-- Finally, with all these solutions, `npm install` still takes minutes for large projects *even when you haven't changed anything*.
+- Finally, with all these solutions, `npm install` still takes minutes for large projects *even when you haven't changed anything and have most things in cache*. Fast builds are a *good thing*.
 
-A simpler and more scalable solution is to archive the entire `node_modules` directory and put it somewhere reliable, like S3. But this can be slow if it's always published and then fetched every time you need it. It's also a headache to script, especially in a continuous integration environment, where you want to re-install fresh on builds on all branches, every few minutes, and reinstall *only* when the checked-in `npm-shrinkwrap.json` file changes.
+A simple solution is to archive the entire `node_modules` directory and put it somewhere reliable, like S3. But this can be slow if it's always published and then fetched every time you need it. It's also a headache to script, especially in a continuous integration environment, where you want to re-install fresh on builds on all branches, every few minutes, and reinstall *only* when the checked-in `npm-shrinkwrap.json` file changes.
 
 Instaclone is another approach. It works well with `npm shrinkwrap`. It lets you specify where to store your `node_modules` in S3, and version that entire tree by the SHA1 hash of the `npm-shrinkwrap.json` file. You can then work on multiple branches and swap them in and out (a bit like how `nvm` caches Node installations).
 
