@@ -17,8 +17,8 @@ from log_calls import log_calls
 
 import utils
 
-_other_fields = "name version version_hashable"
 _required_fields = "local_path remote_path remote_prefix copy_type upload_command download_command"
+_other_fields = "version version_hashable"
 
 ConfigBase = namedtuple("ConfigBase", _other_fields + " " + _required_fields)
 
@@ -34,7 +34,6 @@ class Config(ConfigBase):
 
   def as_string_dict(self):
     d = dict(self._asdict())
-    del d["name"]
     return {k: _stringify_config_field(v) for (k, v) in d.iteritems() if v is not None}
 
 
@@ -98,17 +97,16 @@ def _load_raw_configs(override_path, search_dirs):
   with open(path) as f:
     parsed_configs = yaml.safe_load(f)
 
-  out = OrderedDict()
+  out = []
   try:
     items = parsed_configs["items"]
-    for (key, config_dict) in items.iteritems():
+    for config_dict in items:
       # TODO: Could overlay global configs and local ones here.
       combined = {key: None for key in Config._fields}
       combined.update(config_dict)
-      combined["name"] = key
 
       try:
-        out[key] = combined
+        out.append(combined)
       except TypeError as e:
         raise ConfigError("error in config value: %s: %s" % (e, config_dict))
   except ValueError as e:
@@ -118,14 +116,11 @@ def _load_raw_configs(override_path, search_dirs):
 
 
 def _parse_validate(raw_config_list):
-  for (name, raw) in raw_config_list.items():
+  for raw in raw_config_list:
     # Validation.
     for key in CONFIGS_REQUIRED:
       if key not in raw or raw[key] is None:
         raise ConfigError("must specify '%s' in item config: %s" % (key, raw))
-
-    if not re.compile("^[\\w.-]+$").match(raw["name"]):
-      raise ConfigError("invalid name for item: '%s'" % raw["name"])
 
     if "version" in raw and not re.compile("^[\\w.-]+$").match(str(raw["version"])):
       raise ConfigError("invalid version string: '%s'" % raw["version"])
@@ -174,7 +169,7 @@ def load(override_path, search_dirs=CONFIG_FILE_SEARCH_ORDER):
 
 
 def print_configs(configs, stream=sys.stdout):
-  yaml.dump({"items": OrderedDict([config.name, config.as_string_dict()] for config in configs)},
+  yaml.dump({"items": [config.as_string_dict() for config in configs]},
             stream=stream, default_flow_style=False)
 
 
