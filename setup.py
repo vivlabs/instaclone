@@ -1,18 +1,18 @@
 #!/usr/bin/env
 
 from setuptools import setup, find_packages
-from instaclone import instaclone
+from instaclone import main
 
 setup(
   name="instaclone",
-  version=instaclone.VERSION,
+  version=main.VERSION,
   packages=find_packages(),
   author="Joshua Levy",
   license="Apache 2",
   url="https://github.com/jlevy/instaclone",
   install_requires=["enum34>=1.0.4", "PyYAML>=3.11", "subprocess32>=3.2.6"],
-  description=instaclone.DESCRIPTION,
-  long_description=instaclone.LONG_DESCRIPTION,
+  description=main.DESCRIPTION,
+  long_description=main.LONG_DESCRIPTION,
   classifiers=[
     'Development Status :: 4 - Beta',
     'Environment :: Console',
@@ -29,7 +29,7 @@ setup(
   ],
   entry_points={
     "console_scripts": [
-      "instaclone = instaclone.instaclone:main",
+      "instaclone = instaclone.main:main",
     ],
   },
 )

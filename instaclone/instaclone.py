@@ -1,6 +1,5 @@
-#!/usr/bin/env python
 """
-For further documentation, see: https://github.com/jlevy/instaclone
+Instaclone main library.
 """
 
 from __future__ import print_function
@@ -9,10 +8,9 @@ __author__ = 'jlevy'
 
 import logging as log
 import re
-import argparse
+import sys
 import os
 import shutil
-import sys
 
 from enum import Enum  # enum34
 
@@ -29,27 +27,7 @@ from utils import make_all_dirs, make_parent_dirs
 from utils import shell_expand_to_popen
 from log_calls import log_calls
 
-NAME = "instaclone"
-VERSION = "0.1.4"
-DESCRIPTION = "instaclone: Fast, cached installations of versioned files"
-LONG_DESCRIPTION = __doc__
-
-LOG_STREAM = sys.stderr
-
-
-def log_setup(level):
-  if level == log.DEBUG:
-    log.basicConfig(format="%(levelname).1s %(filename)16s:%(lineno)-4d  %(message)s", level=level,
-                    stream=LOG_STREAM)
-  else:
-    log.basicConfig(format="%(message)s", level=level, stream=LOG_STREAM)
-
-    def brief_excepthook(exctype, value, traceback):
-      print("error: %s" % value, file=sys.stderr)
-      print("(run with --debug for traceback info)", file=sys.stderr)
-      sys.exit(2)
-
-    sys.excepthook = brief_excepthook
+SHELL_OUTPUT = sys.stderr
 
 
 class AppError(RuntimeError):
@@ -60,7 +38,7 @@ def _upload_file(command_template, local_path, remote_loc):
   popenargs = shell_expand_to_popen(command_template, {"REMOTE": remote_loc, "LOCAL": local_path})
   log.info("uploading: %s", " ".join(popenargs))
   # TODO: Find a way to support force here (e.g. add or remove -f to s4cmd)
-  subprocess.check_call(popenargs, stdout=LOG_STREAM, stderr=LOG_STREAM, stdin=DEV_NULL)
+  subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
 
 
 def _download_file(command_template, remote_loc, local_path):
@@ -68,7 +46,7 @@ def _download_file(command_template, remote_loc, local_path):
     popenargs = shell_expand_to_popen(command_template, {"REMOTE": remote_loc, "LOCAL": temp_target})
     log.info("downloading: %s", " ".join(popenargs))
     # TODO: Find a way to support force here.
-    subprocess.check_call(popenargs, stdout=LOG_STREAM, stderr=LOG_STREAM, stdin=DEV_NULL)
+    subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
 
 # For simplicity, we only support zip compression.
 # TODO: Note zip/unzip by default follows symlinks, so full contents are included. Consider making this a flag.
@@ -89,7 +67,7 @@ def _compress_dir(local_dir, archive_path, force=False):
     cd_to = local_dir
     log.debug("using cwd: %s", cd_to)
     log.info("compress: %s", " ".join(popenargs))
-    subprocess.check_call(popenargs, cwd=cd_to, stdout=LOG_STREAM, stderr=LOG_STREAM, stdin=DEV_NULL)
+    subprocess.check_call(popenargs, cwd=cd_to, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
 
 
 def _decompress_dir(archive_path, local_dir, force=False):
@@ -105,7 +83,7 @@ def _decompress_dir(archive_path, local_dir, force=False):
     cd_to = temp_dir
     log.debug("using cwd: %s", cd_to)
     log.info("decompress: %s", " ".join(popenargs))
-    subprocess.check_call(popenargs, cwd=cd_to, stdout=LOG_STREAM, stderr=LOG_STREAM, stdin=DEV_NULL)
+    subprocess.check_call(popenargs, cwd=cd_to, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
 
 
 @log_calls
@@ -291,7 +269,7 @@ def version_for(config):
   if config.version_command:
     log.debug("version command: %s", config.version_command)
     popenargs = shell_expand_to_popen(config.version_command, {})
-    output = subprocess.check_output(popenargs, stderr=LOG_STREAM, stdin=DEV_NULL).strip()
+    output = subprocess.check_output(popenargs, stderr=SHELL_OUTPUT, stdin=DEV_NULL).strip()
     if not configs.CONFIG_VERSION_RE.match(output):
       raise configs.ConfigError("invalid version output from version command: '%s'" % output)
     bits.append(output)
@@ -305,7 +283,7 @@ Command = Enum("Command", "publish install purge configs")
 _command_list = [c.name for c in Command]
 
 
-def _run(command, config_list, force=False):
+def run_command(command, config_list, force=False):
   # Don't initialize cache for nondestructive commands.
   if command == Command.configs:
     configs.print_configs(config_list)
@@ -326,29 +304,6 @@ def _run(command, config_list, force=False):
 
     else:
       raise AssertionError("unknown command: " + command)
-
-
-def main():
-  parser = argparse.ArgumentParser(description=DESCRIPTION, version=VERSION, epilog="\n" + __doc__,
-                                   formatter_class=argparse.RawTextHelpFormatter)
-  parser.add_argument("command", help="%s command" % NAME, choices=_command_list)
-  parser.add_argument("--config", help="Config YAML or JSON file to override usual search path")
-  parser.add_argument("-f", "--force",
-                      help="force operation, clobbering any existing cached or local targets (use with care)",
-                      action="store_true")
-  parser.add_argument("--debug", help="enable debugging output", action="store_true")
-  args = parser.parse_args()
-
-  log_setup(log.DEBUG if args.debug else log.INFO)
-
-  config_list = configs.load(override_path=args.config)
-
-  _run(Command[args.command], config_list, force=args.force)
-
-
-if __name__ == '__main__':
-  main()
-
 
 # TODO:
 # - expand environment variables in all commands, for convenience
