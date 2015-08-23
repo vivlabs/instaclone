@@ -1,0 +1,149 @@
+
+# --- Start of tests ---
+
+# Python version we're using to run tests.
+python -V
+Python 2.7.9
+
+run purge
+using config file: ./instaclone.yml
+cache dir not found, so creating: __DIR/.instaclone/cache
+purging cache: __DIR/.instaclone/cache
+
+# Error invocations.
+run bad_command || expect_error
+usage: main.py [-h] [-v] [--config CONFIG] [-f] [--debug]
+               {publish,install,purge,configs}
+main.py: error: argument command: invalid choice: 'bad_command' (choose from 'publish', 'install', 'purge', 'configs')
+(got expected error: status 2)
+
+run configs
+using config file: ./instaclone.yml
+items:
+- copy_type: symlink
+  download_command: s4cmd get $REMOTE $LOCAL
+  local_path: test-file1
+  remote_path: another-folder
+  remote_prefix: s3://sf-builds/tmp/instaclone-tests
+  upload_command: s4cmd put -f $LOCAL $REMOTE
+  version: v11
+- copy_type: hardlink
+  download_command: s4cmd get $REMOTE $LOCAL
+  local_path: test-file2
+  remote_path: another-folder
+  remote_prefix: s3://sf-builds/tmp/instaclone-tests
+  upload_command: s4cmd put -f $LOCAL $REMOTE
+  version: v22
+- copy_type: symlink
+  download_command: s4cmd get $REMOTE $LOCAL
+  local_path: test-dir
+  remote_path: some/remote/folder
+  remote_prefix: s3://sf-artifacts/instaclone/tmp-tests
+  upload_command: s4cmd put -f $LOCAL $REMOTE
+  version_command: echo testver
+  version_hashable: test-file2-hashable
+
+# Check contents before.
+ls -F -1
+instaclone.yml
+test-dir/
+test-file1
+test-file2
+test-file2-hashable
+
+head -10 test-dir/* test-file{1,2}
+==> test-dir/file-a <==
+contents a
+
+==> test-dir/file-b <==
+contents b
+
+==> test-file1 <==
+some
+contents
+
+==> test-file2 <==
+some
+more
+contents
+
+run install || expect_error
+using config file: ./instaclone.yml
+cache dir not found, so creating: __DIR/.instaclone/cache
+initializing new cache: __DIR/.instaclone/cache
+downloading: s4cmd get s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.zip __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.zip.partial.__X
+[Runtime Failure] Source doesn't exist.
+installing file: test-file1 <- __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 <- s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+downloading: s4cmd get s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
+[Runtime Failure] Source doesn't exist.
+error: Command '['s4cmd', 'get', 's3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1', '__DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X']' returned non-zero exit status 1
+(run with --debug for traceback info)
+(got expected error: status 2)
+
+run publish
+using config file: ./instaclone.yml
+using cache: __DIR/.instaclone/cache
+installing to cache: test-file1 -> __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+uploading: s4cmd put -f __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+__DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 => s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+published file: test-file1 -> s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installing to cache: test-file2 -> __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+uploading: s4cmd put -f __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+__DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 => s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+published file: test-file2 -> s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installing to cache: test-dir -> __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+compress: zip -q -r __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X .
+uploading: s4cmd put -f __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip s3://sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
+__DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip => s3://sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
+decompress: unzip -q __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
+published directory archive: test-dir -> s3://sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
+
+# Check for results of publish.
+ls -F -1
+instaclone.yml
+test-dir@
+test-dir.bak/
+test-file1@
+test-file2
+test-file2-hashable
+
+readlink test-dir
+__DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+readlink test-file1
+__DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+
+head -10 test-dir/* test-file{1,2}
+==> test-dir/file-a <==
+contents a
+
+==> test-dir/file-b <==
+contents b
+
+==> test-file1 <==
+some
+contents
+
+==> test-file2 <==
+some
+more
+contents
+
+# Publish again.
+run publish || expect_error
+using config file: ./instaclone.yml
+error: cannot publish symlinks (is path already published?): test-file1
+(run with --debug for traceback info)
+(got expected error: status 2)
+
+run install -f
+using config file: ./instaclone.yml
+using cache: __DIR/.instaclone/cache
+installing from cache: test-file1 <- __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installing from cache: test-file2 <- __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installing from cache: test-dir <- __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+
+run purge
+using config file: ./instaclone.yml
+purging cache: __DIR/.instaclone/cache
+
+# --- End of tests ---

@@ -1,0 +1,26 @@
+---
+items:
+  - local_path: test-file1
+    remote_path: another-folder
+    remote_prefix: s3://$TEST_BUCKET/tmp/instaclone-tests
+    version: v11
+    upload_command: s4cmd put -f $LOCAL $REMOTE
+    download_command: s4cmd get $REMOTE $LOCAL
+    copy_type: symlink
+
+  - local_path: test-file2
+    remote_path: another-folder
+    remote_prefix: s3://$TEST_BUCKET/tmp/instaclone-tests
+    version: v22
+    upload_command: s4cmd put -f $LOCAL $REMOTE
+    download_command: s4cmd get $REMOTE $LOCAL
+    copy_type: hardlink
+
+  - local_path: test-dir
+    remote_path: some/remote/folder
+    remote_prefix: s3://sf-artifacts/instaclone/tmp-tests
+    version_hashable: test-file2-hashable
+    version_command: echo testver
+    upload_command: s4cmd put -f $LOCAL $REMOTE
+    download_command: s4cmd get $REMOTE $LOCAL
+    copy_type: symlink

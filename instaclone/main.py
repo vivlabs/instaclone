@@ -10,7 +10,7 @@ import argparse
 import sys
 
 NAME = "instaclone"
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 DESCRIPTION = "instaclone: Fast, cached installations of versioned files"
 LONG_DESCRIPTION = __doc__
 
@@ -39,7 +39,7 @@ def main():
   parser = argparse.ArgumentParser(description=DESCRIPTION, version=VERSION, epilog="\n" + __doc__,
                                    formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("command", help="%s command" % NAME, choices=instaclone._command_list)
-  parser.add_argument("--config", help="Config YAML or JSON file to override usual search path")
+  parser.add_argument("--config", help="config YAML or JSON file to override usual search path")
   parser.add_argument("-f", "--force",
                       help="force operation, clobbering any existing cached or local targets (use with care)",
                       action="store_true")

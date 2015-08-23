@@ -25,6 +25,7 @@ from utils import atomic_output_file, copyfile_atomic, write_string_to_file, DEV
 from utils import move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1
 from utils import make_all_dirs, make_parent_dirs
 from utils import shell_expand_to_popen
+from utils import dict_merge
 from log_calls import log_calls
 
 SHELL_OUTPUT = sys.stderr
@@ -35,7 +36,8 @@ class AppError(RuntimeError):
 
 
 def _upload_file(command_template, local_path, remote_loc):
-  popenargs = shell_expand_to_popen(command_template, {"REMOTE": remote_loc, "LOCAL": local_path})
+  popenargs = shell_expand_to_popen(command_template,
+                                    dict_merge(os.environ, {"REMOTE": remote_loc, "LOCAL": local_path}))
   log.info("uploading: %s", " ".join(popenargs))
   # TODO: Find a way to support force here (e.g. add or remove -f to s4cmd)
   subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
@@ -43,12 +45,15 @@ def _upload_file(command_template, local_path, remote_loc):
 
 def _download_file(command_template, remote_loc, local_path):
   with atomic_output_file(local_path, make_parents=True) as temp_target:
-    popenargs = shell_expand_to_popen(command_template, {"REMOTE": remote_loc, "LOCAL": temp_target})
+    popenargs = shell_expand_to_popen(command_template,
+                                      dict_merge(os.environ, {"REMOTE": remote_loc, "LOCAL": temp_target}))
     log.info("downloading: %s", " ".join(popenargs))
     # TODO: Find a way to support force here.
     subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
 
-# For simplicity, we only support zip compression.
+# For simplicity, we currently only support zip compression.
+# We use command-line standard zip/unzip instead of Python zip, since it is a bit more performant
+# and makes the archiving mechanism pluggable in the future.
 # TODO: Note zip/unzip by default follows symlinks, so full contents are included. Consider making this a flag.
 
 ARCHIVE_SUFFIX = ".zip"
@@ -268,7 +273,7 @@ def version_for(config):
     bits.append(file_sha1(config.version_hashable))
   if config.version_command:
     log.debug("version command: %s", config.version_command)
-    popenargs = shell_expand_to_popen(config.version_command, {})
+    popenargs = shell_expand_to_popen(config.version_command, os.environ)
     output = subprocess.check_output(popenargs, stderr=SHELL_OUTPUT, stdin=DEV_NULL).strip()
     if not configs.CONFIG_VERSION_RE.match(output):
       raise configs.ConfigError("invalid version output from version command: '%s'" % output)
@@ -288,7 +293,7 @@ def run_command(command, config_list, force=False):
   if command == Command.configs:
     configs.print_configs(config_list)
   else:
-    cache_dir = configs.cache_dir()
+    cache_dir = configs.set_up_cache_dir()
     file_cache = FileCache(cache_dir)
 
     if command == Command.publish:
@@ -306,7 +311,12 @@ def run_command(command, config_list, force=False):
       raise AssertionError("unknown command: " + command)
 
 # TODO:
-# - expand environment variables in all commands, for convenience
+# - failover_command that is executed if install fails, and failover_publish
+# - failover_publish flag
+# - merge command-line args and config file values?
+# - --no-cache option that just downloads
+# - let "instaclone purge" work even if not in a dir with a config file
+# - think how to auto-purge all but one resource per branch (say) (and generalize to env variable)
 # - "clean" command that deletes local resources (requiring -f if not in cache)
 # - "unpublish" command that deletes a remote resource (and purges from cache)
 # - command to unpublish all but most recent n versions of a resource

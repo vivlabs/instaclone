@@ -38,6 +38,17 @@ def iso_timestamp():
   return datetime.now().isoformat() + 'Z'
 
 
+def dict_merge(*dict_list):
+  '''
+  Given zero or more dicts, shallow copy and merge them into a new dict, with
+  precedence to dictionary values later in the dict list.
+  '''
+  result = {}
+  for d in dict_list:
+    result.update(d)
+  return result
+
+
 #
 # ---- Templating ----
 

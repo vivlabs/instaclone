@@ -10,8 +10,9 @@ import re
 import sys
 from collections import namedtuple, OrderedDict
 
-from enum import Enum  # enum34
-import yaml  # PyYAML
+from enum import Enum  # enum34 pip
+import yaml  # PyYAML pip
+from functools32 import lru_cache  # functools32 pip
 
 from log_calls import log_calls
 
@@ -26,6 +27,7 @@ CONFIGS_REQUIRED = _required_fields.split()
 
 CONFIG_VERSION_RE = re.compile("^[\\w.-]+$")
 
+
 def _stringify_config_field(value):
   return value.name if isinstance(value, Enum) else str(value)
 
@@ -39,9 +41,8 @@ class Config(ConfigBase):
 
 
 CONFIG_NAME = "instaclone"
-CONFIG_FILE_SEARCH_ORDER = [".", "$INSTACLONE_DIR", "$HOME/.instaclone"]
-CONFIG_DIR_SEARCH_ORDER = ["$INSTACLONE_DIR", "$HOME/.instaclone"]
-CONFIG_DIR_DEFAULT = "$HOME/.instaclone"
+CONFIG_DIR_ENV = "INSTACLONE_DIR"
+CONFIG_HOME_DIR = ".instaclone"
 
 DEFAULT_ITEM_NAME = "default"
 
@@ -53,47 +54,41 @@ class ConfigError(RuntimeError):
 CopyType = Enum("CopyType", "copy symlink hardlink")
 
 
-def _locate_config_dir(search_dirs):
-  """Look in common locations for config directory."""
-  tried = []
-  for path in search_dirs:
-    log.debug("searching for config dir: %s", path)
-    try:
-      path = utils.shell_expand_variables(path, os.environ)
-    except ValueError:
-      continue
-    tried.append("no config dir found in: %s" % ", ".join(tried))
-    if os.path.isdir(path):
-      log.debug("using config dir: %s", path)
-      return path
-  raise ConfigError("no config file found in: %s" % ", ".join(tried))
+@lru_cache(maxsize=None)
+def _locate_config_dir():
+  """Check for which config directory to use."""
+  if CONFIG_DIR_ENV in os.environ:
+    config_dir = os.environ[CONFIG_DIR_ENV]
+    if os.path.exists(config_dir):
+      return config_dir
+    else:
+      raise ConfigError("%s directory not found: %s" % (CONFIG_DIR_ENV, config_dir))
+  else:
+    config_dir = os.path.join(os.environ["HOME"], CONFIG_HOME_DIR)
+    return config_dir
 
 
 def _locate_config_file(search_dirs):
   """Look in common locations for config file."""
   tried = []
   for base in search_dirs:
-    try:
-      base_expanded = utils.shell_expand_variables(base, os.environ)
-    except ValueError:
-      continue
-    for path in [os.path.join(base_expanded, CONFIG_NAME + suffix) for suffix in ".yml", ".json"]:
+    for path in [os.path.join(base, CONFIG_NAME + suffix) for suffix in ".yml", ".json"]:
       log.debug("searching for config file: %s", path)
       tried.append(path)
       if os.path.isfile(path):
-        log.debug("using config file: %s", path)
+        log.info("using config file: %s", path)
         return path
   raise ConfigError("no config file found in: %s" % ", ".join(tried))
 
 
 @log_calls
-def _load_raw_configs(override_path, search_dirs):
+def _load_raw_configs(override_path):
+  """Find first config in override_path, current dir, or config dir."""
   if override_path:
     path = override_path
   else:
+    search_dirs = [".", _locate_config_dir()]
     path = _locate_config_file(search_dirs)
-    if not path:
-      raise ConfigError("could not locate config file (be sure a config is in working dir or home folder)")
 
   with open(path) as f:
     parsed_configs = yaml.safe_load(f)
@@ -129,17 +124,23 @@ def _parse_validate(raw_config_list):
       raise ConfigError("must specify 'version', 'version_hashable', or 'version_command' in item config: %s" % raw)
 
     # Validate shell templates.
+    # For these, we don't expand environment variables here, but instead do it at once at call time.
     for key in "upload_command", "download_command":
       try:
         utils.shell_expand_to_popen(raw[key], {"REMOTE": "dummy", "LOCAL": "dummy"})
       except ValueError as e:
-        raise ConfigError("invalid command in config: %s: %s" % (e, raw[key]))
+        raise ConfigError("invalid command in config value for %s: %s" % (key, e))
 
-    # Normalize.
-    for path in "local_path", "remote_path":
-      if path.startswith("/"):
-        raise ConfigError("currently only support relative paths for local_path and remote_path: %s" % path)
-      raw[path] = raw[path].rstrip("/")
+    # Normalize and expand environment variables.
+    for key in "local_path", "remote_prefix", "remote_path":
+      if key.startswith("/"):
+        raise ConfigError("currently only support relative paths for local_path and remote_path: %s" % key)
+      raw[key] = raw[key].rstrip("/")
+
+      try:
+        raw[key] = utils.expand_variables(raw[key], os.environ)
+      except ValueError as e:
+        raise ConfigError("invalid command in config value for %s: %s" % (key, e))
 
     # Parse enums.
     try:
@@ -151,22 +152,18 @@ def _parse_validate(raw_config_list):
 
 
 @log_calls
-def cache_dir():
-  try:
-    config_dir = _locate_config_dir(CONFIG_DIR_SEARCH_ORDER)
-  except ConfigError:
-    config_dir = utils.shell_expand_variables(CONFIG_DIR_DEFAULT, os.environ)
-    log.info("config dir not found, so creating: %s", config_dir)
+def set_up_cache_dir():
+  config_dir = _locate_config_dir()
   cache_dir = os.path.join(config_dir, "cache")
-  utils.make_all_dirs(cache_dir)
+  if not os.path.exists(cache_dir):
+    log.info("cache dir not found, so creating: %s", cache_dir)
+    utils.make_all_dirs(cache_dir)
   return cache_dir
 
 
-def load(override_path, search_dirs=CONFIG_FILE_SEARCH_ORDER):
-  """Load all configs from a single file. Use override_path or the first one found in search_dirs."""
-  if not search_dirs:
-    search_dirs = []
-  return list(_parse_validate(_load_raw_configs(override_path, search_dirs)))
+def load(override_path=None):
+  """Load all configs from a single file. Use override_path or the first one found in standard locations."""
+  return list(_parse_validate(_load_raw_configs(override_path)))
 
 
 def print_configs(configs, stream=sys.stdout):

@@ -1,69 +1,30 @@
 # Instaclone
 
-Instaclone is a simple, configurable command-line tool to publish and then later re-install files or directories, using S3 or other services as a backing store, and keeping local caches to optimize re-installation speed for repeated installations.
+[![Boink](images/clone-140.jpg)](http://www.gocomics.com/calvinandhobbes/1990/01/10)
 
-Think of it as a way to publish and install versions of files to and from S3, while maintaining a local cache so download is essentially instant when doing it a second time.
+Instaclone is a simple, configurable command-line tool to publish and then later re-install files or directories from S3 (or another store), and keeping local caches to optimize re-installation speed for repeated installations.
 
-It's good for files you want to version but not check into Git (due to size, sensitivity, platform-dependence, etc.). You git-ignore them and install them with Instaclone, and instead version the Instaclone configuration that references them.
+Think of it as a way to publish and install snapshots of files or directories in S3, while also maintaining a local cache of snapshots so switching between previously downloaded versions is instant. The install is just a symlink to the local cache.
 
-In particular, it helps fix a pain point with `npm install` slowness on build systems. If you use this with `npm shrinkwrap`, you can switch back and forth between branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Or your colleage can pull, run `instaclone install` and get a byte-for-byte exact copy of your `node_modules`. See below for more on this.
+It's good for files you want to version but not check into Git (due to size, sensitivity, platform dependence, etc.). You git-ignore them and install them with Instaclone, and instead version the Instaclone configuration that references them.
 
-## Goals
+## Exact, cached node_modules snapshots
 
-- Support for publishing and installing large files and directory trees of many files.
-- Manage multiple immutable versions of each file/directory.
-- Local caching of items, so it's very fast to re-install a previously installed item (a single symlink).
-- Configurability. External authentication and transport, using whatever backing storage system desired (so you don't have to worry about configuring credentials just for this tool, and can publish to S3 or elsewhere).
-- Simplicity.
+This tool isn't only for use with Node, but this is one use case.
+
+While npm is amazingly convenient for development, managing the workflow around `npm install` can be a pain point in terms of speed, reliability, and reproducibility as you scale out builds and in production. If you use Instaclone to publish after committing your npm shrinkwrap file, you can switch back and forth between Git branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Your colleagues can do this too -- after you publish, they can run `instaclone install` and get a byte-for-byte exact copy of your `node_modules` cached on their machines. Finally, your CI builds will speed up most of the time -- possibly by a lot! [See below](#why-you-should-instaclone-node_modules) for more info on this.
 
 ## Features
 
-- Configurable to use [`s4cmd`](https://github.com/bloomreach/s4cmd) or any other command-line tool to upload and download files to wherever you want in S3.
-- Configurable ways to manage versions, including one or more of:
-  - Explicit (you the version to install)
-  - Hashed (you say what file to hash to get the version id)
+- Upload/download is via configurable shell commands, using whatever backing storage system desired, so you don't have to worry about configuring credentials just for this tool, and can publish to S3 or elsewhere. I'd recommend using [`s4cmd`](https://github.com/bloomreach/s4cmd) for high-performance multi-connection access to S3.
+- Snapshots have version strings, which can be:
+  - Explicit (you just say what version to use in the config file)
+  - SHA1 of a file (you say another file that is hashed to get a unique string)
   - Command (you have Instaclone execute an arbitrary command, like `uname`, which means you can have different versions per platform type automatically)
 - Simple, clean internal format. The file cache is just a simple file tree that you can look at and clean up as you wish. Directories are archived as .zip files.
 - Good hygiene: All files, directories, and archives are created atomically, so that interruptions or problems never leave files in a partially complete state.
-- You can install items as symlinks (files or directories), hardlinks (files only), or fully copy (a little slower but still better than a download).
-- For symlink installs, one convenient detail is that the target of the symlink (in the cache) has the same name as the source, so symlinks still play nice with `..` paths like `../target/foo`.
-
-## Configuration
-
-Here is a marginally self-explanatory `instaclone.yml` configuration, which you drop
-anywhere you want and probably check into Git. You'd create as many files like this as
-you want in different directories, just making sure `remote_path`s are unique.
-
-```yml
----
-items:
-  # A big file lives in this directory. It takes a while to generate, so we're going to
-  # reference it here by version, and update the version manually when we regenerate.
-  - local_path: my-big-and-occasionally-generated-resource.bin
-    remote_path: some/big-resources
-    remote_prefix: s3://my-bucket/instaclone-resources
-    upload_command: s4cmd put -f $LOCAL $REMOTE
-    download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink
-    # This is the version string:
-    version: 4
-
-  - local_path: node_modules
-    remote_path: my-app/node-stuff
-    remote_prefix: s3://my-bucket/instaclone-resources
-    upload_command: s4cmd put -f $LOCAL $REMOTE
-    download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink
-    # We generate the version as a hash of the npm-shrinkwrap.json plus the architecture we're on:
-    version_hashable: npm-shrinkwrap.json
-    version_command: uname
-```
-
-See below for more on the `node_modules` one.
-
-## Maturity
-
-One-day hack. It works, but still under development.
+- You can install items as symlinks (probably what you want), hardlinks (works for files but not directories), or fully copy (slower but still better than a download).
+- For symlink installs, one convenient detail is that the target of the symlink (in the cache) has the same name as the source, so installed symlinks will play nice paths like `../target/foo` (where `target` is the symlink).
 
 ## Installation
 
@@ -77,36 +38,84 @@ It also requires some tools in your path:
 - `s3cmd`, `aws`, `s4cmd`, or any similar tool you put into your
   `upload_command` and `download_command` settings
 
+
+
+## Configuration
+
+Instaclone requires two things to run:
+- A config file, which can be called `instaclone.yml` or `instaclone.json` in the current directory. (YAML or JSON syntax is fine.) This configuration file says how resources will be published and installed.
+- A main directory to store the cache in, which defaults to `$HOME/.instaclone` but can be overridden by the `INSTACLONE_DIR` environment variable. If you want, you can put a global `instaclone.{yml,json}` file there instead.
+
+As an example, here is a marginally self-explanatory `instaclone.yml` configuration, which you would drop anywhere you want and probably should check into Git. You'd create as many files like this as desired in different directories, taking care you give them distinct `remote_path`s are unique.
+
+```yml
+---
+# You can have as many items as you like and all will be installed.
+# You'll want to git-ignore the local_paths below.
+items:
+  # A big file lives in this directory. It takes a while to generate, so we're going to
+  # reference it in this file by version, instaclone publish, and anyone can
+  # instaclone install it. We update the version string manually when we regenerate it.
+  - local_path: my-big-and-occasionally-generated-resource.bin
+    remote_prefix: s3://my-bucket/instaclone-resources
+    remote_path: some/big-resources
+    upload_command: s4cmd put -f $LOCAL $REMOTE
+    download_command: s4cmd get $REMOTE $LOCAL
+    copy_type: symlink
+    # This is the version of the file. It can be any string.
+    version: 42a
+
+  - local_path: node_modules
+    remote_prefix: s3://my-bucket/instaclone-resources
+    remote_path: my-app/node-stuff
+    upload_command: s4cmd put -f $LOCAL $REMOTE
+    download_command: s4cmd get $REMOTE $LOCAL
+    copy_type: symlink
+    # We generate the version string as a hash of the npm-shrinkwrap.json plus the architecture we're on:
+    version_hashable: npm-shrinkwrap.json
+    version_command: uname
+```
+
+See below for more on the `node_modules` one.
+
 ## Usage
 
-Put an `instaclone.yml` file in the directory where you want resources cached. This configuration file says how those will be published and installed. Then run commands from that directory:
+Once Instaclone is configured, run:
 
 - `instaclone publish`: upload configured items (and add to cache)
 - `instaclone install`: download configured items (and add to cache)
 - `instaclone configs`: sanity check configuration
 - `instaclone purge`: delete entire cache (leaving resources uploaded)
 
-## More on npm install, shrinkwrap, and Instaclone
+## Why you should Instaclone node_modules
 
-This use case takes a little explanation. Having fast and reproducible runs of `npm install` is a challenge:
+This use case deserves a little more explanation.
 
-- [As](https://docs.npmjs.com/cli/shrinkwrap)
-  [we](http://blog.nodejs.org/2012/02/27/managing-node-js-dependencies-with-shrinkwrap/)
-  [all](http://javascript.tutorialhorizon.com/2015/03/21/what-is-npm-shrinkwrap-and-when-is-it-needed/)
-  [know](http://tilomitra.com/why-you-should-use-npm-shrinkwrap/),
-  the state of the `node_modules` is not inherently reproducible from the `package.json` file.
-- Using `npm shrinkwrap` helps lock down exact package versions, but even this doesn't completely guarantee byte-for-byte repeatable installations if you're relying on the npm.org server.
-- Downloading from the global server, and even installing from the local cache, take a lot of time, e.g if you want to do rapid CI builds from a clean install.
-- Operationally, you also want a more scalable solution to distributing packages than hitting npmjs.org every time (you don't want lots of servers or build machines doing this continuously).
-- You can set up a [local npm cache server](https://github.com/mixu/npm_lazy) but this is more infrastructure to maintain (which, incidentally, is likely to be a single point of failure that you have to maintain and scale).
-- Finally, with all these solutions, `npm install` still takes minutes for large projects *even when you haven't changed anything*.
+Having fast and reproducible runs of `npm install` is a challenge for developers, CI systems, and deployment:
 
-A simpler and more scalable solution is to archive the entire `node_modules` directory and put it somewhere reliable, like S3. But this can be slow if it's always published and then fetched every time you need it. It's also a headache to script, especially in a continuous integration environment, where you want to re-install fresh on builds on all branches, every few minutes, and reinstall *only* when the checked-in `npm-shrinkwrap.json` file changes.
+- As [we](http://blog.nodejs.org/2012/02/27/managing-node-js-dependencies-with-shrinkwrap/)
+[all](http://javascript.tutorialhorizon.com/2015/03/21/what-is-npm-shrinkwrap-and-when-is-it-needed/)
+[know](http://tilomitra.com/why-you-should-use-npm-shrinkwrap/),
+the state of the `node_modules` is not inherently reproducible from the `package.json` file, so you should use [`npm shrinkwrap`](https://docs.npmjs.com/cli/shrinkwrap).
+- While `npm shrinkwrap` locks down exact package versions, even this *doesn't guarantee byte-for-byte repeatable installations* if you're relying on the global npmjs.org server. Think about it: Reliability requires controlling change. If you change some single piece of code somewhere unrelated to your dependencies, and your build system reruns `npm install`, what if one of your hundreds of packages was unpublished, or you have an issue connecting to npmjs.org? It's impossible to ensure exact repeatability unless you keep an exact copy and use it everywhere.
+- Operationally, you also want a more scalable solution to distributing packages than hitting npmjs.org every time. You don't want lots of servers or build machines doing this continuously.
+- You can set up a [local npm repository](https://www.npmjs.com/package/sinopia) or a [local npm cache server](https://github.com/mixu/npm_lazy) to help, but this is more infrastructure for devops to maintain and scale. And incidentally, it also is likely to be a single point of failure -- and not being able to push new builds realiably is a bad thing (precisely when you don't need it).
+- Finally, downloading from the global server and even installing from the local cache, take a lot of time, e.g if you want to do rapid CI builds from a clean install. With all these solutions, `npm install` still takes minutes for large projects *even when you haven't changed anything*.
 
-Instaclone is another approach. It works well with `npm shrinkwrap`. It lets you specify where to store your `node_modules` in S3, and version that entire tree by the SHA1 hash of the `npm-shrinkwrap.json` file. You can then work on multiple branches and swap them in and out (a bit like how `nvm` caches Node installations).
+A simpler and more scalable solution to this is to archive the entire `node_modules` directory, and put it somewhere reliable, like S3. But it can be large and slow to manage if it's always published and then fetched every time you need it. It's also a headache to script, especially in a continuous integration environment, where you want to re-install fresh on builds on all branches, every few minutes, and reinstall *only* when the checked-in `npm-shrinkwrap.json` file changes.
+
+Instaclone does all this for you. If you already have an `npm shrinkwrap` workflow, it's pretty easy. It lets you specify where to store your `node_modules` in S3, and version that entire tree by the SHA1 hash of the `npm-shrinkwrap.json` file (and the architecture, since builds are platform-dependent). You can then work on multiple branches and swap them in and out -- a bit like how `nvm` caches Node installations.
 
 See above for sample configs.
+
+## Maturity
+
+One-day hack. It works, but still under development.
 
 ## Contributing
 
 Yes, please! File issues or open PRs.
+
+## License
+
+Apache.
