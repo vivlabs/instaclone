@@ -2,17 +2,15 @@
 
 [![Boink](images/clone-140.jpg)](http://www.gocomics.com/calvinandhobbes/1990/01/10)
 
-Instaclone is a simple, configurable command-line tool to publish and then later re-install files or directories from S3 (or another store), and keeping local caches to optimize re-installation speed for repeated installations.
+Instaclone is a simple, configurable command-line tool to publish and later install snapshots of files or directories in S3 (or another store). It keeps a cache of previously used snapshots so switching between previously cached snapshots is instant -- just a symlink to the local cache.
 
-Think of it as a way to publish and install snapshots of files or directories in S3, while also maintaining a local cache of snapshots so switching between previously downloaded versions is instant. The install is just a symlink to the local cache.
-
-It's good for files you want to version but not check into Git (due to size, sensitivity, platform dependence, etc.). You git-ignore them and install them with Instaclone, and instead version the Instaclone configuration that references them.
+It's good for files you want to version things but not check them into Git, due to size, sensitivity, platform dependence, etc. You git-ignore the original files, publish them Instaclone, and instead check in the Instaclone configuration file that references them.
 
 ## Exact, cached node_modules snapshots
 
-This tool isn't only for use with Node, but this is one use case.
+This tool isn't only for use with Node, but this is a good motivating use case.
 
-While npm is amazingly convenient for development, managing the workflow around `npm install` can be a pain point in terms of speed, reliability, and reproducibility as you scale out builds and in production. If you use Instaclone to publish after committing your npm shrinkwrap file, you can switch back and forth between Git branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Your colleagues can do this too -- after you publish, they can run `instaclone install` and get a byte-for-byte exact copy of your `node_modules` cached on their machines. Finally, your CI builds will speed up most of the time -- possibly by a lot! [See below](#why-you-should-instaclone-node_modules) for more info on this.
+While npm is amazingly convenient during development, managing the workflow around `npm install` can be a pain point in terms of speed, reliability, and reproducibility as you scale out builds and in production. If you use Instaclone to publish after committing your npm shrinkwrap file, you can switch back and forth between Git branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Your colleagues can do this too -- after you publish, they can run `instaclone install` and get a byte-for-byte exact copy of your `node_modules` cached on their machines. Finally, your CI builds will speed up most of the time -- possibly by a lot! [See below](#why-you-should-instaclone-node_modules) for more info on this.
 
 ## Features
 
