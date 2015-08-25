@@ -59,13 +59,9 @@ def _locate_config_dir():
   """Check for which config directory to use."""
   if CONFIG_DIR_ENV in os.environ:
     config_dir = os.environ[CONFIG_DIR_ENV]
-    if os.path.exists(config_dir):
-      return config_dir
-    else:
-      raise ConfigError("%s directory not found: %s" % (CONFIG_DIR_ENV, config_dir))
   else:
     config_dir = os.path.join(os.environ["HOME"], CONFIG_HOME_DIR)
-    return config_dir
+  return config_dir
 
 
 def _locate_config_file(search_dirs):

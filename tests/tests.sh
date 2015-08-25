@@ -33,6 +33,8 @@ set -v
 
 # --- Start of tests ---
 
+unset INSTACLONE_DIR
+
 # Python version we're using to run tests.
 python -V
 
@@ -79,6 +81,13 @@ run install -f
 ls_portable
 
 ls_portable test-dir/
+
+# Try non-default instaclone cache directory.
+export INSTACLONE_DIR=/tmp/instaclone-dir
+
+rm -rf $INSTACLONE_DIR
+
+run install -f
 
 # Leave files installed in case it's helpful to debug anything.
 
