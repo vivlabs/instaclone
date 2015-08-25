@@ -106,9 +106,11 @@ def _install_from_cache(cache_path, target_path, copy_type, force=False, make_ba
   """
   Install a file or directory from cache, either symlinking, hardlinking, or copying.
   """
-  # For now, we don't keep any backups.
   def checked_remove():
-    if os.path.exists(target_path):
+    # Never backup links (they are probably previous installs).
+    if os.path.islink(target_path):
+      os.unlink(target_path)
+    elif os.path.exists(target_path):
       if force:
         if make_backup:
           move_to_backup(target_path)

@@ -160,7 +160,12 @@ downloading: s4cmd get s3://sf-builds/tmp/instaclone-tests/another-folder/test-f
 installing file: test-file1 <- __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 <- s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
 s3://sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 => __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
-error: target already exists: test-file1
+downloading: s4cmd get s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.zip __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.zip.partial.__X
+[Runtime Failure] Source doesn't exist.
+installing file: test-file2 <- __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 <- s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+downloading: s4cmd get s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
+s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 => __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
+error: target already exists: test-file2
 (run with --debug for traceback info)
 (got expected error: status 2)
 
@@ -168,11 +173,7 @@ run install -f
 using config file: ./instaclone.yml
 using cache: __DIR/.instaclone/cache
 installing from cache: test-file1 <- __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
-downloading: s4cmd get s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.zip __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.zip.partial.__X
-[Runtime Failure] Source doesn't exist.
-installing file: test-file2 <- __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 <- s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
-downloading: s4cmd get s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
-s3://sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 => __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
+installing from cache: test-file2 <- __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 downloading: s4cmd get s3://sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
 s3://sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip => __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
 installing directory: test-dir <- __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip

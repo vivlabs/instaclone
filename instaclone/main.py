@@ -10,7 +10,7 @@ import argparse
 import sys
 
 NAME = "instaclone"
-VERSION = "0.1.7"
+VERSION = "0.1.8"
 DESCRIPTION = "instaclone: Fast, cached installations of versioned files"
 LONG_DESCRIPTION = __doc__
 
