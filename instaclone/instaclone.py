@@ -21,9 +21,9 @@ except ImportError:
   import subprocess
 
 import configs
-from utils import atomic_output_file, copyfile_atomic, write_string_to_file, DEV_NULL
+from utils import atomic_output_file, write_string_to_file, DEV_NULL
 from utils import move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1
-from utils import make_all_dirs, make_parent_dirs
+from utils import make_all_dirs, make_parent_dirs, chmod_native
 from utils import shell_expand_to_popen
 from utils import dict_merge
 from log_calls import log_calls
@@ -43,13 +43,16 @@ def _upload_file(command_template, local_path, remote_loc):
   subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
 
 
-def _download_file(command_template, remote_loc, local_path):
+def _download_file(command_template, remote_loc, local_path, make_readonly=False):
   with atomic_output_file(local_path, make_parents=True) as temp_target:
     popenargs = shell_expand_to_popen(command_template,
                                       dict_merge(os.environ, {"REMOTE": remote_loc, "LOCAL": temp_target}))
     log.info("downloading: %s", " ".join(popenargs))
     # TODO: Find a way to support force here.
     subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
+
+    if make_readonly:
+      chmod_native(temp_target, "go-rwx")
 
 # For simplicity, we currently only support zip compression.
 # We use command-line standard zip/unzip instead of Python zip, since it is a bit more performant
@@ -75,7 +78,7 @@ def _compress_dir(local_dir, archive_path, force=False):
     subprocess.check_call(popenargs, cwd=cd_to, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
 
 
-def _decompress_dir(archive_path, local_dir, force=False):
+def _decompress_dir(archive_path, local_dir, force=False, make_readonly=False):
   if os.path.exists(local_dir):
     if force:
       log.info("deleting previous dir: %s", local_dir)
@@ -88,7 +91,14 @@ def _decompress_dir(archive_path, local_dir, force=False):
     cd_to = temp_dir
     log.debug("using cwd: %s", cd_to)
     log.info("decompress: %s", " ".join(popenargs))
+
     subprocess.check_call(popenargs, cwd=cd_to, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
+
+    if make_readonly:
+      # Make whole cache read-only to avoid subtle bugs/issues if people modify it.
+      # You might think you could do this with umask on the command above, but in the case of unzip it
+      # modifies permissions explicitly. So we do it brute force.
+      chmod_native(temp_dir, "go-rwx", recursive=True)
 
 
 @log_calls
@@ -204,7 +214,7 @@ class FileCache(object):
       log.info("installing to cache: %s -> %s", local_path, cached_path)
       _compress_dir(local_path, cached_archive, force=force)
       _upload_file(config.upload_command, cached_archive, remote_loc)
-      _decompress_dir(cached_archive, cached_path, force=force)
+      _decompress_dir(cached_archive, cached_path, force=force, make_readonly=True)
       # Leave the previous version of the tree as a backup.
       log.debug("installing back from cache: %s <- %s", local_path, cached_path)
       _install_from_cache(cached_path, local_path, config.copy_type, force=True, make_backup=True)
@@ -214,6 +224,8 @@ class FileCache(object):
 
       log.info("installing to cache: %s -> %s", local_path, cached_path)
       # For speed on large files, move it rather than copy.
+      # Also make it read-only, just as it will be after install.
+      chmod_native(local_path, "go-rwx")
       movefile(local_path, cached_path, make_parents=True)
       _upload_file(config.upload_command, cached_path, remote_loc)
       log.debug("installing back from cache: %s <- %s", local_path, cached_path)
@@ -247,11 +259,11 @@ class FileCache(object):
         is_dir = False
       if is_dir:
         log.info("installing directory: %s <- %s <- %s", config.local_path, cached_path, remote_archive_loc)
-        _decompress_dir(cached_archive_path, cached_path, force=force)
+        _decompress_dir(cached_archive_path, cached_path, force=force, make_readonly=True)
       else:
         remote_loc = self.remote_loc(config, version)
         log.info("installing file: %s <- %s <- %s", config.local_path, cached_path, remote_loc)
-        _download_file(config.download_command, remote_loc, cached_path)
+        _download_file(config.download_command, remote_loc, cached_path, make_readonly=True)
 
       _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
 

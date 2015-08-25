@@ -14,6 +14,12 @@ import hashlib
 from contextlib import contextmanager
 from datetime import datetime
 
+# The subprocess module has known threading issues, so prefer subprocess32.
+try:
+  import subprocess32 as subprocess
+except ImportError:
+  import subprocess
+
 DEV_NULL = open(os.devnull, 'wb')
 
 BACKUP_SUFFIX = ".bak"
@@ -212,6 +218,20 @@ def rmtree_or_file(path, ignore_errors=False, onerror=None):
     shutil.rmtree(path, ignore_errors=ignore_errors, onerror=onerror)
   else:
     os.unlink(path)
+
+
+def chmod_native(path, mode_expression, recursive=False):
+  """
+  This is ugly and will only work on POSIX, but the built-in Python os.chmod support
+  is very minimal, and neither supports fast recursion nor "+X" type expressions, both
+  of which are slow/costly for large trees. So just shell out.
+  """
+  popenargs = ["chmod"]
+  if recursive:
+    popenargs.append("-R")
+  popenargs.append(mode_expression)
+  popenargs.append(path)
+  subprocess.check_call(popenargs)
 
 
 def file_sha1(path):
