@@ -31,6 +31,8 @@ While npm is amazingly convenient during development, managing the workflow arou
 
 ## Installation
 
+Requires Python 2.7+. Then (with sudo if desired):
+
 ```
 pip install instaclone
 ```
@@ -124,7 +126,7 @@ One-day hack. It works, but still under development.
 Tests require `s4cmd`:
 
 ```
-$ TEST_BUCKET=my-scrach-bucket tests/run.sh
+$ TEST_BUCKET=my-s3-bucket tests/run.sh
 ```
 
 This is a bash-based harness that runs the test script at `tests/tests.sh`. Its output can then be `git diff`ed with the previous output.
