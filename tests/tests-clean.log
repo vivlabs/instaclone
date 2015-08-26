@@ -109,12 +109,12 @@ ls_portable
 lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
 drwxr-xr-x test-dir.bak/
 lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
--rw------- test-file2
+-r--r--r-- test-file2
 -rw-r--r-- test-file2-hashable
 
 ls_portable test-dir/
--rw------- file-a
--rw------- file-b
+-r--r--r-- file-a
+-r--r--r-- file-b
 
 head -10 test-dir/* test-file{1,2}
 ==> test-dir/file-a <==
@@ -187,12 +187,12 @@ ls_portable
 lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/sf-artifacts/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
 drwxr-xr-x test-dir.bak/
 lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/sf-builds/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
--rw------- test-file2
+-r--r--r-- test-file2
 -rw-r--r-- test-file2-hashable
 
 ls_portable test-dir/
--rw------- file-a
--rw------- file-b
+-r--r--r-- file-a
+-r--r--r-- file-b
 
 # Try non-default instaclone cache directory.
 export INSTACLONE_DIR=/tmp/instaclone-dir
