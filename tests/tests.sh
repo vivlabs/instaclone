@@ -11,9 +11,12 @@ base_dir=`dirname $0`
 config=$base_dir/instaclone.yml
 prog=$base_dir/../${prog_name}/main.py
 
+args=
+#args=--debug
+
 # Run harness to set test config externally.
 run() {
-  $prog "$@"
+  $prog $args "$@"
 }
 
 # A trick to test for error conditions.
