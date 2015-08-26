@@ -19,10 +19,15 @@ While npm is amazingly convenient during development, managing the workflow arou
   - Explicit (you just say what version to use in the config file)
   - SHA1 of a file (you say another file that is hashed to get a unique string)
   - Command (you have Instaclone execute an arbitrary command, like `uname`, which means you can have different versions per platform type automatically)
-- Simple, clean internal format. The file cache is just a simple file tree that you can look at and clean up as you wish. Directories are archived as .zip files.
+- Simple, clean internal format.
+  - By default it's in `~/.instaclone`, but you can set the `INSTACLONE_DIR` environment variable to set this directory to something else.
+  - The file cache is just a simple file tree that you can look at and clean up as you wish.
+  - Directories are archived as .zip files, stored next to the full directory, which is read-only.
 - Good hygiene: All files, directories, and archives are created atomically, so that interruptions or problems never leave files in a partially complete state.
 - You can install items as symlinks (probably what you want), hardlinks (works for files but not directories), or fully copy (slower but still better than a download).
-- For symlink installs, one convenient detail is that the target of the symlink (in the cache) has the same name as the source, so installed symlinks will play nice paths like `../target/foo` (where `target` is the symlink).
+- For symlink installs, a couple convenient details:
+   - The file permissions on items in the cache is read-only, so that if you inadvertently try to modify the contents of the cache by following the symlink and changing a file, it will fail.
+   - The target of the symlink (in the cache) has the same name as the source, so installed symlinks will play nice paths like `../target/foo` (where `target` is the symlink).
 
 ## Installation
 
@@ -109,6 +114,20 @@ See above for sample configs.
 ## Maturity
 
 One-day hack. It works, but still under development.
+
+## Caveats
+
+- You have to clean up the cache manually -- there's no automated process for this yet.
+
+## Running tests
+
+Tests require `s4cmd`:
+
+```
+$ TEST_BUCKET=my-scrach-bucket tests/run.sh
+```
+
+This is a bash-based harness that runs the test script at `tests/tests.sh`. Its output can then be `git diff`ed with the previous output.
 
 ## Contributing
 
