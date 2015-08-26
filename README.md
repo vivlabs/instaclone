@@ -2,9 +2,9 @@
 
 [![Boink](images/clone-140.jpg)](http://www.gocomics.com/calvinandhobbes/1990/01/10)
 
-Instaclone is a simple, configurable command-line tool to publish and later install snapshots of files or directories in S3 (or another store). It keeps a cache of previously used snapshots so switching between previously cached snapshots is instant -- just a symlink to the local cache.
+Instaclone is a simple, configurable command-line tool to publish and later install snapshots of files or directories in S3 (or another store). It keeps a cache of downloaded snapshots so switching between previously cached snapshots is instant -- just a symlink to the local cache.
 
-It's good for files you want to version things but not check them into Git, due to size, sensitivity, platform dependence, etc. You git-ignore the original files, publish them Instaclone, and instead check in the Instaclone configuration file that references them.
+It's good for files you want to version things but not check them into Git, due to size, sensitivity, platform dependence, etc. You git-ignore the original files, publish them with Instaclone, and instead check in the Instaclone configuration file that references them.
 
 ## Exact, cached node_modules snapshots
 
