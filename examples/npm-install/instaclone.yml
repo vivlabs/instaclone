@@ -1,0 +1,21 @@
+---
+# Sample configuration for Instacloning node_modules.
+# Just copy this file next to your Node project root, modify it as desired, and check it into Git.
+# You need to "pip install s4cmd" and configure ~/.s3cfg with your credentials for S3 for this to work.
+# Thereafter, anyone can "instaclone publish" or "instaclone install" from that directory.
+# With this config, the final files will be in S3 at locations like:
+#   s3://my-s3-bucket/instaclone/my-project/my-app/node_modules.$xxxx-yyyy$/node_modules.zip
+# (where xxxx is a SHA1 hash and yyyy is the platform).
+items:
+  - local_path: node_modules
+    remote_path: my-app
+    remote_prefix: s3://my-s3-bucket/instaclone/my-project
+    # These commands are called to upload and download the archived directory:
+    upload_command: s4cmd put -f $LOCAL $REMOTE
+    download_command: s4cmd get $REMOTE $LOCAL
+    # We install via symlink so it's fast and evident when you're using a cached node_modules directory:
+    copy_type: symlink
+    # The "version" is a hash of the shrinkwrap file followed by the platform we're on
+    # (e.g. Linux or Darwin, which we determine by calling "uname").
+    version_hashable: npm-shrinkwrap.json
+    version_command: uname
