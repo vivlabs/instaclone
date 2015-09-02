@@ -318,13 +318,21 @@ Command = Enum("Command", "publish install purge configs")
 _command_list = [c.name for c in Command]
 
 
-def run_command(command, config_list, force=False):
-  # Don't initialize cache for nondestructive commands.
+def run_command(command, override_path=None, force=False):
+  # Nondestructive commands that don't require cache.
   if command == Command.configs:
+    config_list = configs.load(override_path=override_path)
     configs.print_configs(config_list)
+
+  # Destructive commands that require cache but not configs.
+  elif command == Command.purge:
+    file_cache = FileCache(configs.set_up_cache_dir())
+    file_cache.purge()
+
+  # Commands that require cache and configs.
   else:
-    cache_dir = configs.set_up_cache_dir()
-    file_cache = FileCache(cache_dir)
+    config_list = configs.load(override_path=override_path)
+    file_cache = FileCache(configs.set_up_cache_dir())
 
     if command == Command.publish:
       for config in config_list:
@@ -334,9 +342,6 @@ def run_command(command, config_list, force=False):
       for config in config_list:
         file_cache.install(config, version_for(config), force=force)
 
-    elif command == Command.purge:
-      file_cache.purge()
-
     else:
       raise AssertionError("unknown command: " + command)
 
@@ -345,7 +350,6 @@ def run_command(command, config_list, force=False):
 # - failover_publish flag
 # - merge command-line args and config file values?
 # - --no-cache option that just downloads
-# - let "instaclone purge" work even if not in a dir with a config file
 # - think how to auto-purge all but one resource per branch (say) (and generalize to env variable)
 # - "clean" command that deletes local resources (requiring -f if not in cache)
 # - "unpublish" command that deletes a remote resource (and purges from cache)

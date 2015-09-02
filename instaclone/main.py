@@ -34,7 +34,6 @@ def log_setup(level):
 
 def main():
   import instaclone
-  import configs
 
   parser = argparse.ArgumentParser(description=DESCRIPTION, version=VERSION, epilog="\n" + __doc__,
                                    formatter_class=argparse.RawTextHelpFormatter)
@@ -48,9 +47,7 @@ def main():
 
   log_setup(log.DEBUG if args.debug else log.INFO)
 
-  config_list = configs.load(override_path=args.config)
-
-  instaclone.run_command(instaclone.Command[args.command], config_list, force=args.force)
+  instaclone.run_command(instaclone.Command[args.command], override_path=args.config, force=args.force)
 
 
 if __name__ == '__main__':

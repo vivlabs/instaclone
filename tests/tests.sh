@@ -87,7 +87,7 @@ ls_portable test-dir/
 
 # Try non-default instaclone cache directory.
 export INSTACLONE_DIR=/tmp/instaclone-dir
-
+chmod -R +w $INSTACLONE_DIR
 rm -rf $INSTACLONE_DIR
 
 run install -f

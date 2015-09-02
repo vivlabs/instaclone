@@ -41,6 +41,8 @@ $dir/tests.sh 2>&1 \
   | perl -pe '$|=1; s/partial.[a-z0-9]*/partial.__X/g' \
   | perl -pe '$|=1; s/ at 0x[0-9a-f]*/ at 0x__X/g' \
   | perl -pe '$|=1; s/[0-9.:T-]*Z/__TIMESTAMP/g' \
+  | perl -pe '$|=1; s|s3://[a-zA-Z0-9_-]+/|s3://__BUCKET/|g' \
+  | perl -pe '$|=1; s|/s3/[a-zA-Z0-9_-]+/|/s3/__BUCKET/|g' \
   | perl -pe '$|=1; s|/private/tmp/|/tmp/|g' \
   | perl -pe '$|=1; s|/\S+/.instaclone/|__DIR/.instaclone/|g' \
   > $clean_log
