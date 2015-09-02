@@ -111,7 +111,7 @@ A simpler and more scalable solution to this is to archive the entire `node_modu
 
 Instaclone does all this for you. If you already have an `npm shrinkwrap` workflow, it's pretty easy. It lets you specify where to store your `node_modules` in S3, and version that entire tree by the SHA1 hash of the `npm-shrinkwrap.json` file togetehr with the architecture. You can then work on multiple branches and swap them in and out -- a bit like how `nvm` caches Node installations.
 
-See above for sample configs.
+Copy and edit [the example config file](examples/npm-install/instaclone.yml) to try it.
 
 ## Maturity
 
