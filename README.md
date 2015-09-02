@@ -121,6 +121,7 @@ Mostly a one-day hack. It works in at least one continuous build environment, bu
 
 - You have to clean up the cache manually by running `instaclone purge` or deleting files in `~/.instaclone/cache` -- there's no automated process for this yet, so if you publish a lot it will begin to accumulate.
 - There is no `unpublish` functionality -- if you publish something by mistake, go find it in S3 (or wherever you put it) and delete it.
+- If you are obsessed with Node, you'll somehow have to accept that this is written in Python.
 - See [issues](issues) and [the TODOs list](instaclone/instaclone.py) for further work.
 
 ## Running tests
