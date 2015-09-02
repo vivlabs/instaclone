@@ -11,8 +11,10 @@ import re
 import sys
 import os
 import shutil
+import tempfile
 
 from enum import Enum  # enum34
+from functools32 import lru_cache  # functools32 pip
 
 # The subprocess module has known threading issues, so prefer subprocess32.
 try:
@@ -69,8 +71,51 @@ def _download_file(command_template, remote_loc, local_path):
 # We use command-line standard zip/unzip instead of Python zip, since it is a bit more performant
 # and makes the archiving mechanism pluggable in the future.
 # TODO: Note zip/unzip by default follows symlinks, so full contents are included. Consider making this a flag.
+# TODO: Also consider whether to preserve uid/gid etc., perhaps adding --no-extra to zip.
 
 ARCHIVE_SUFFIX = ".zip"
+
+
+@lru_cache()
+def _autodetect_zip_command():
+  try:
+    zip_output = subprocess.check_output(["zip", "-v"])
+    zip_cmd = "zip -q -r $ARCHIVE $DIR"
+  except subprocess.CalledProcessError as e:
+    raise AppError("Archive handling requires 'zip' in path: %s" % e)
+
+  if zip_output.find("ZIP64_SUPPORT") < 0:
+    log.warn("installed 'zip' doesn't have Zip64 support so will fail for large archives")
+  log.debug("zip command: %s", zip_cmd)
+  return zip_cmd
+
+
+@lru_cache()
+def _autodetect_unzip_command():
+  unzip_cmd = None
+  unzip_output = None
+  try:
+    unzip_output = subprocess.check_output(["unzip", "-v"])
+    unzip_cmd = "unzip -q $ARCHIVE"
+  except subprocess.CalledProcessError as e:
+    pass
+
+  # On MacOS Yosemite, unzip does not support Zip64, but ditto is available.
+  # See: https://github.com/jlevy/instaclone/issues/1
+  if not unzip_cmd or not unzip_output or unzip_output.find("ZIP64_SUPPORT") < 0:
+    log.debug("did not find 'unzip' with Zip64 support; trying ditto")
+    try:
+      # ditto has no simple flag to check its version and exit with 0 status code.
+      subprocess.check_call(["ditto", "-c", "/dev/null", tempfile.mktemp()])
+      unzip_cmd = "ditto -x -k $ARCHIVE ."
+    except subprocess.CalledProcessError as e:
+      log.debug("did not find ditto")
+
+  if not unzip_cmd:
+    raise AppError("Archive handling requires 'unzip' or 'ditto' in path: %s" % e)
+
+  log.debug("unzip command: %s", unzip_cmd)
+  return unzip_cmd
 
 
 def _compress_dir(local_dir, archive_path, force=False):
@@ -82,7 +127,7 @@ def _compress_dir(local_dir, archive_path, force=False):
       raise AppError("archive already in cache (has version changed?): %s" % archive_path)
   with atomic_output_file(archive_path) as temp_archive:
     make_parent_dirs(temp_archive)
-    popenargs = shell_expand_to_popen("zip -q -r $ARCHIVE $DIR", {"ARCHIVE": temp_archive, "DIR": "."})
+    popenargs = shell_expand_to_popen(_autodetect_zip_command(), {"ARCHIVE": temp_archive, "DIR": "."})
     cd_to = local_dir
     log.debug("using cwd: %s", cd_to)
     log.info("compress: %s", " ".join(popenargs))
@@ -97,7 +142,7 @@ def _decompress_dir(archive_path, target_path, force=False):
     else:
       raise AppError("target already exists: %s" % target_path)
   with atomic_output_file(target_path) as temp_dir:
-    popenargs = shell_expand_to_popen("unzip -q $ARCHIVE", {"ARCHIVE": archive_path, "DIR": temp_dir})
+    popenargs = shell_expand_to_popen(_autodetect_unzip_command(), {"ARCHIVE": archive_path, "DIR": temp_dir})
     make_all_dirs(temp_dir)
     cd_to = temp_dir
     log.debug("using cwd: %s", cd_to)

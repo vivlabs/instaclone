@@ -38,7 +38,9 @@ set -v
 
 unset INSTACLONE_DIR
 
-# Python version we're using to run tests.
+# Platform and Python version we're using to run tests.
+uname
+
 python -V
 
 run purge

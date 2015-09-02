@@ -3,7 +3,10 @@
 
 unset INSTACLONE_DIR
 
-# Python version we're using to run tests.
+# Platform and Python version we're using to run tests.
+uname
+Darwin
+
 python -V
 Python 2.7.10
 
@@ -99,7 +102,7 @@ installing to cache: test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/in
 compress: zip -q -r __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X .
 uploading: s4cmd put -f __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
 __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip => s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
-decompress: unzip -q __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
+decompress: ditto -x -k __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip .
 published directory archive: test-dir -> s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
 
 # Check for results of publish.
@@ -177,7 +180,7 @@ installing from cache: test-file2 <- __DIR/.instaclone/cache/contents/s3/__BUCKE
 downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
 s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip => __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
 installing directory: test-dir <- __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
-decompress: unzip -q __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
+decompress: ditto -x -k __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip .
 
 # Check contents once more.
 ls_portable
@@ -214,7 +217,7 @@ s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 =>
 downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
 s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip => /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
 installing directory: test-dir <- /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
-decompress: unzip -q /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
+decompress: ditto -x -k /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip .
 
 # Leave files installed in case it's helpful to debug anything.
 
