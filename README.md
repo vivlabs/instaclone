@@ -104,22 +104,24 @@ Having fast and reproducible runs of `npm install` is a challenge for developers
 the state of the `node_modules` is not inherently reproducible from the `package.json` file, so you should use [`npm shrinkwrap`](https://docs.npmjs.com/cli/shrinkwrap).
 - While `npm shrinkwrap` mostly locks down exact package versions, even this *doesn't guarantee byte-for-byte repeatable installations*. Think about it: Reliability requires controlling change. If you change some single piece of code somewhere unrelated to your dependencies, and your build system reruns `npm install`, what if one of your hundreds of packages was unpublished, or you have an issue connecting to npmjs.org? In addition, shrinkwrap [doesn't prevent churn in peer dependencies](https://github.com/npm/npm/issues/5135). It's impossible to ensure exact repeatability unless you just make an exact copy and use it everywhere.
 - Operationally, you also want a more scalable solution to distributing packages than hitting npmjs.org every time. You don't want lots of servers or build machines doing this continuously.
-- You can set up a [local npm repository](https://www.npmjs.com/package/sinopia) or a [local npm cache server](https://github.com/mixu/npm_lazy) to help, but this is more infrastructure for devops to maintain and scale. And incidentally, it also is likely to be a single point of failure -- and not being able to push new builds realiably is a bad thing (precisely when you don't need it). You might also prefer to use [private modules](https://www.npmjs.com/private-modules) and not host these yourself.
+- You can set up a [local npm repository](https://www.npmjs.com/package/sinopia) or a [local npm cache server](https://github.com/mixu/npm_lazy) to help, but this is more infrastructure for devops to maintain and scale. And incidentally, it also is likely to be a single point of failure: Not being able to push new builds reliably is a Bad Thing (precisely when you don't need it). Plus, if you use [private modules](https://www.npmjs.com/private-modules) and pay npm, Inc. to host private code for you, you probably don't otherwise need another local repository.
 - Finally, downloading from the global server and even installing from the local cache, take a lot of time, e.g if you want to do rapid CI builds from a clean install. With all these solutions, `npm install` still takes minutes for large projects *even when you haven't changed anything*.
 
-A simpler and more scalable solution to this is to archive the entire `node_modules` directory, and put it somewhere reliable, like S3. But it can be large and slow to manage if it's always published and then fetched every time you need it. It's also a headache to script, especially in a continuous integration environment, where you want to re-install fresh on builds on all branches, every few minutes, and reinstall *only* when the checked-in `npm-shrinkwrap.json` file changes.
+A simpler and more scalable solution to this is to archive the entire `node_modules` directory, and put it somewhere reliable, like S3. But it can be large and slow to manage if it's always published and then fetched every time you need it. It's also a headache to script, especially in a continuous integration environment, where you want to re-install fresh on builds on all branches, every few minutes, and reinstall *only* when the checked-in `npm-shrinkwrap.json` file changes. Oh, and also the builds are platform-dependent, so you need to publish separately on MacOS and Linux.
 
-Instaclone does all this for you. If you already have an `npm shrinkwrap` workflow, it's pretty easy. It lets you specify where to store your `node_modules` in S3, and version that entire tree by the SHA1 hash of the `npm-shrinkwrap.json` file (and the architecture, since builds are platform-dependent). You can then work on multiple branches and swap them in and out -- a bit like how `nvm` caches Node installations.
+Instaclone does all this for you. If you already have an `npm shrinkwrap` workflow, it's pretty easy. It lets you specify where to store your `node_modules` in S3, and version that entire tree by the SHA1 hash of the `npm-shrinkwrap.json` file togetehr with the architecture. You can then work on multiple branches and swap them in and out -- a bit like how `nvm` caches Node installations.
 
 See above for sample configs.
 
 ## Maturity
 
-One-day hack. It works, but still under development.
+Mostly a one-day hack. It works in at least one continuous build environment, but still under development.
 
 ## Caveats
 
-- You have to clean up the cache manually -- there's no automated process for this yet.
+- You have to clean up the cache manually by running `instaclone purge` or deleting files in `~/.instaclone/cache` -- there's no automated process for this yet, so if you publish a lot it will begin to accumulate.
+- There is no `unpublish` functionality -- if you publish something by mistake, go find it in S3 (or wherever you put it) and delete it.
+- See [issues](issues) and [the TODOs list](instaclone/instaclone.py) for further work.
 
 ## Running tests
 
@@ -133,7 +135,7 @@ This is a bash-based harness that runs the test script at `tests/tests.sh`. Its 
 
 ## Contributing
 
-Yes, please! File issues or open PRs.
+Yes, please! File issues for bugs or general discussion. PRs welcome as well -- just figure out how to run the tests and document any other testing that's been done.
 
 ## License
 
