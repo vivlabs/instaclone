@@ -57,8 +57,16 @@ drwxr-xr-x test-dir/
 ls_portable test-dir/
 -rw-r--r-- file-a
 -rw-r--r-- file-b
+drwxr-xr-x subdir/
+lrwxr-xr-x file-a
+lrwxr-xr-x symlink-file-a
 
-head -10 test-dir/* test-file{1,2}
+ls_portable test-dir/subdir/
+-rw-r--r-- file-c
+lrwxr-xr-x /tmp/external-test-file
+lrwxr-xr-x ../file-b
+
+head -10 test-dir/file-* test-file{1,2}
 ==> test-dir/file-a <==
 contents a
 
@@ -117,8 +125,11 @@ lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/ano
 ls_portable test-dir/
 -r--r--r-- file-a
 -r--r--r-- file-b
+dr-xr-xr-x subdir/
+-r--r--r-- symlink-file-a
+-r--r--r-- symlink-symlink-file-a
 
-head -10 test-dir/* test-file{1,2}
+head -10 test-dir/file-* test-file{1,2}
 ==> test-dir/file-a <==
 contents a
 
@@ -194,6 +205,9 @@ lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/ano
 ls_portable test-dir/
 -r--r--r-- file-a
 -r--r--r-- file-b
+dr-xr-xr-x subdir/
+-r--r--r-- symlink-file-a
+-r--r--r-- symlink-symlink-file-a
 
 # Try non-default instaclone cache directory.
 export INSTACLONE_DIR=/tmp/instaclone-dir

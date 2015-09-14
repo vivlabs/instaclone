@@ -18,7 +18,7 @@ items:
 
   - local_path: test-dir
     remote_path: some/remote/folder
-    remote_prefix: s3://sf-artifacts/instaclone/tmp-tests
+    remote_prefix: s3://$TEST_BUCKET/instaclone/tmp-tests
     version_hashable: test-file2-hashable
     version_command: echo testver
     upload_command: s4cmd put -f $LOCAL $REMOTE

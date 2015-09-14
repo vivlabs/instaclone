@@ -55,7 +55,9 @@ ls_portable
 
 ls_portable test-dir/
 
-head -10 test-dir/* test-file{1,2}
+ls_portable test-dir/subdir/
+
+head -10 test-dir/file-* test-file{1,2}
 
 run install || expect_error
 
@@ -66,7 +68,7 @@ ls_portable
 
 ls_portable test-dir/
 
-head -10 test-dir/* test-file{1,2}
+head -10 test-dir/file-* test-file{1,2}
 
 # Publish again.
 run publish || expect_error
