@@ -22,12 +22,14 @@ try:
 except ImportError:
   import subprocess
 
+from strif import atomic_output_file, write_string_to_file, DEV_NULL
+from strif import move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1
+from strif import make_all_dirs, make_parent_dirs, chmod_native
+from strif import shell_expand_to_popen
+from strif import dict_merge
+
 import configs
-from utils import atomic_output_file, write_string_to_file, DEV_NULL
-from utils import move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1
-from utils import make_all_dirs, make_parent_dirs, chmod_native
-from utils import shell_expand_to_popen
-from utils import dict_merge
+
 from log_calls import log_calls
 
 SHELL_OUTPUT = sys.stderr
@@ -66,6 +68,7 @@ def _download_file(command_template, remote_loc, local_path):
     log.info("downloading: %s", " ".join(popenargs))
     # TODO: Find a way to support force here.
     subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
+
 
 # For simplicity, we currently only support zip compression.
 # We use command-line standard zip/unzip instead of Python zip, since it is a bit more performant
@@ -355,6 +358,7 @@ def version_for(config):
     bits.append(output)
 
   return "-".join(bits)
+
 
 #
 # ---- Command line ----

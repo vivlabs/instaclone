@@ -16,7 +16,7 @@ from functools32 import lru_cache  # functools32 pip
 
 from log_calls import log_calls
 
-import utils
+import strif
 
 _required_fields = "local_path remote_path remote_prefix copy_type upload_command download_command"
 _other_fields = "version version_hashable version_command"
@@ -123,7 +123,7 @@ def _parse_validate(raw_config_list):
     # For these, we don't expand environment variables here, but instead do it at once at call time.
     for key in "upload_command", "download_command":
       try:
-        utils.shell_expand_to_popen(raw[key], {"REMOTE": "dummy", "LOCAL": "dummy"})
+        strif.shell_expand_to_popen(raw[key], {"REMOTE": "dummy", "LOCAL": "dummy"})
       except ValueError as e:
         raise ConfigError("invalid command in config value for %s: %s" % (key, e))
 
@@ -134,7 +134,7 @@ def _parse_validate(raw_config_list):
       raw[key] = raw[key].rstrip("/")
 
       try:
-        raw[key] = utils.expand_variables(raw[key], os.environ)
+        raw[key] = strif.expand_variables(raw[key], os.environ)
       except ValueError as e:
         raise ConfigError("invalid command in config value for %s: %s" % (key, e))
 
@@ -153,7 +153,7 @@ def set_up_cache_dir():
   cache_dir = os.path.join(config_dir, "cache")
   if not os.path.exists(cache_dir):
     log.info("cache dir not found, so creating: %s", cache_dir)
-    utils.make_all_dirs(cache_dir)
+    strif.make_all_dirs(cache_dir)
   return cache_dir
 
 
