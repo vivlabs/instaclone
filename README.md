@@ -25,9 +25,10 @@ While npm is amazingly convenient during development, managing the workflow arou
   - Directories are archived as .zip files, stored next to the full directory, which is read-only.
 - Good hygiene: All files, directories, and archives are created atomically, so that interruptions or problems never leave files in a partially complete state.
 - You can install items as symlinks (probably what you want), hardlinks (works for files but not directories), or fully copy (slower but still better than a download).
-- For symlink installs, a couple convenient details:
+- Some conveneint details regarding handling of symlinks and symlink installs:
    - The file permissions on items in the cache is read-only, so that if you inadvertently try to modify the contents of the cache by following the symlink and changing a file, it will fail.
    - The target of the symlink (in the cache) has the same name as the source, so installed symlinks will play nice paths like `../target/foo` (where `target` is the symlink).
+   - Internally within an archive, relative symlinks are preserved. But instaclone is smart enough to check for and abort if it sees symlinks to absolute paths or to relative paths outside the source directory (which would usually be a mistake).
 
 ## Installation
 
