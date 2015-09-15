@@ -24,9 +24,9 @@ expect_error() {
   echo "(got expected error: status $?)"
 }
 
-# A trick to do ls portably, showing just permissions and file types.
+# A trick to do ls portably, showing just permissions, file types, and symlinks.
 ls_portable() {
-  ls -lF "$@" | tail +2 | awk '{print $1, $NF}'
+  ls -lF "$@" | tail +2 | awk '{print $1, $9, $10, $11}'
 }
 
 # This will echo all commands as they are read. Bash commands plus their

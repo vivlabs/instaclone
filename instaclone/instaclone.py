@@ -11,10 +11,9 @@ import re
 import sys
 import os
 import shutil
-import tempfile
 
 from enum import Enum  # enum34
-from functools32 import lru_cache  # functools32 pip
+
 
 # The subprocess module has known threading issues, so prefer subprocess32.
 try:
@@ -28,11 +27,15 @@ from strif import make_all_dirs, make_parent_dirs, chmod_native
 from strif import shell_expand_to_popen
 from strif import dict_merge
 
+import archives
 import configs
 
 from log_calls import log_calls
 
 SHELL_OUTPUT = sys.stderr
+
+# We only support one archive format currently.
+ARCHIVER = archives.TarGzArchiver
 
 
 class AppError(RuntimeError):
@@ -70,88 +73,28 @@ def _download_file(command_template, remote_loc, local_path):
     subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
 
 
-# For simplicity, we currently only support zip compression.
-# We use command-line standard zip/unzip instead of Python zip, since it is a bit more performant
-# and makes the archiving mechanism pluggable in the future.
-# TODO: Note zip/unzip by default follows symlinks, so full contents are included. Consider making this a flag.
-# TODO: Also consider whether to preserve uid/gid etc., perhaps adding --no-extra to zip.
-
-ARCHIVE_SUFFIX = ".zip"
-
-
-@lru_cache()
-def _autodetect_zip_command():
-  try:
-    zip_output = subprocess.check_output(["zip", "-v"])
-    zip_cmd = "zip -q -r $ARCHIVE $DIR"
-  except subprocess.CalledProcessError as e:
-    raise AppError("Archive handling requires 'zip' in path: %s" % e)
-
-  if zip_output.find("ZIP64_SUPPORT") < 0:
-    log.warn("installed 'zip' doesn't have Zip64 support so will fail for large archives")
-  log.debug("zip command: %s", zip_cmd)
-  return zip_cmd
-
-
-@lru_cache()
-def _autodetect_unzip_command():
-  unzip_cmd = None
-  unzip_output = None
-  try:
-    unzip_output = subprocess.check_output(["unzip", "-v"])
-    unzip_cmd = "unzip -q $ARCHIVE"
-  except subprocess.CalledProcessError as e:
-    pass
-
-  # On MacOS Yosemite, unzip does not support Zip64, but ditto is available.
-  # See: https://github.com/jlevy/instaclone/issues/1
-  if not unzip_cmd or not unzip_output or unzip_output.find("ZIP64_SUPPORT") < 0:
-    log.debug("did not find 'unzip' with Zip64 support; trying ditto")
-    try:
-      # ditto has no simple flag to check its version and exit with 0 status code.
-      subprocess.check_call(["ditto", "-c", "/dev/null", tempfile.mktemp()])
-      unzip_cmd = "ditto -x -k $ARCHIVE ."
-    except subprocess.CalledProcessError as e:
-      log.debug("did not find ditto")
-
-  if not unzip_cmd:
-    raise AppError("Archive handling requires 'unzip' or 'ditto' in path: %s" % e)
-
-  log.debug("unzip command: %s", unzip_cmd)
-  return unzip_cmd
-
-
 def _compress_dir(local_dir, archive_path, force=False):
   if os.path.exists(archive_path):
     if force:
       log.info("deleting previous archive: %s", archive_path)
       os.unlink(archive_path)
     else:
-      raise AppError("archive already in cache (has version changed?): %s" % archive_path)
+      raise AppError("Archive already in cache (has version changed?): %r" % archive_path)
   with atomic_output_file(archive_path) as temp_archive:
     make_parent_dirs(temp_archive)
-    popenargs = shell_expand_to_popen(_autodetect_zip_command(), {"ARCHIVE": temp_archive, "DIR": "."})
-    cd_to = local_dir
-    log.debug("using cwd: %s", cd_to)
-    log.info("compress: %s", " ".join(popenargs))
-    subprocess.check_call(popenargs, cwd=cd_to, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
+    ARCHIVER.archive(local_dir, temp_archive)
 
 
 def _decompress_dir(archive_path, target_path, force=False):
   if os.path.exists(target_path):
     if force:
       log.info("deleting previous dir: %s", target_path)
-      shutil.rmtree(target_path)
+      rmtree_or_file(target_path)
     else:
-      raise AppError("target already exists: %s" % target_path)
+      raise AppError("Target already exists: %r" % target_path)
   with atomic_output_file(target_path) as temp_dir:
-    popenargs = shell_expand_to_popen(_autodetect_unzip_command(), {"ARCHIVE": archive_path, "DIR": temp_dir})
     make_all_dirs(temp_dir)
-    cd_to = temp_dir
-    log.debug("using cwd: %s", cd_to)
-    log.info("decompress: %s", " ".join(popenargs))
-
-    subprocess.check_call(popenargs, cwd=cd_to, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
+    ARCHIVER.unarchive(archive_path, temp_dir)
 
 
 @log_calls
@@ -171,23 +114,23 @@ def _install_from_cache(cache_path, target_path, copy_type, force=False, make_ba
         else:
           rmtree_or_file(target_path)
       else:
-        raise AppError("target already exists: %s" % target_path)
+        raise AppError("Target already exists: %r" % target_path)
 
   if not os.path.exists(cache_path):
-    raise AssertionError("cached file missing: %s" % cache_path)
+    raise AssertionError("Cached file missing: %r" % cache_path)
   if copy_type == configs.CopyType.symlink:
     checked_remove()
     os.symlink(cache_path, target_path)
   elif copy_type == configs.CopyType.hardlink:
     if os.path.isdir(cache_path):
-      raise AppError("can't hardlink a directory: %s" % cache_path)
+      raise AppError("Can't hardlink a directory: %r" % cache_path)
     checked_remove()
     os.link(cache_path, target_path)
   elif copy_type == configs.CopyType.copy:
     checked_remove()
     copytree_atomic(cache_path, target_path)
   else:
-    raise AssertionError("invalid copy_type: %s" % copy_type)
+    raise AssertionError("Invalid copy_type: %r" % copy_type)
 
 
 VERSION_SEP = ".$"
@@ -264,42 +207,42 @@ class FileCache(object):
     cached_path = self.cache_path(config, version)
 
     if os.path.islink(local_path):
-      raise AppError("cannot publish symlinks (is path already published?): %s" % local_path)
+      raise AppError("Cannot publish symlinks (is path already published?): %r" % local_path)
 
     self.setup()
 
     # Directories are archived. Files are published as is.
     if os.path.isdir(local_path):
-      cached_archive = self.cache_path(config, version, ARCHIVE_SUFFIX)
-      remote_loc = self.remote_loc(config, version, ARCHIVE_SUFFIX)
+      cached_archive = self.cache_path(config, version, suffix=ARCHIVER.suffix)
+      remote_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
 
       # We archive and then unarchive, to make sure we expand symlinks exactly the way
       # a future installation would (using zip/unzip).
       # TODO: This is usually what we want (think of relative symlinks like ../../foo), but we could make it an option.
-      log.info("installing to cache: %s -> %s", local_path, cached_path)
+      log.debug("installing to cache: %s -> %s", local_path, cached_path)
       _compress_dir(local_path, cached_archive, force=force)
       _upload_file(config.upload_command, cached_archive, remote_loc)
       _decompress_dir(cached_archive, cached_path, force=force)
       # Leave the previous version of the tree as a backup.
-      log.debug("installing back from cache: %s <- %s", local_path, cached_path)
+      log.info("installed to cache: %s -> %s", local_path, cached_path)
       _install_from_cache(cached_path, local_path, config.copy_type, force=True, make_backup=True)
-      log.info("published directory archive: %s -> %s", config.local_path, remote_loc)
+      log.info("published archive: %s", remote_loc)
     elif os.path.isfile(local_path):
       remote_loc = self.remote_loc(config, version)
 
-      log.info("installing to cache: %s -> %s", local_path, cached_path)
+      log.debug("installing to cache: %s -> %s", local_path, cached_path)
       # For speed on large files, move it rather than copy.
       # Also make it read-only, just as it will be after install.
       movefile(local_path, cached_path, make_parents=True)
       _upload_file(config.upload_command, cached_path, remote_loc)
-      log.debug("installing back from cache: %s <- %s", local_path, cached_path)
+      log.info("installed to cache: %s -> %s", local_path, cached_path)
       _install_from_cache(cached_path, local_path, config.copy_type, force=False, make_backup=False)
-      log.info("published file: %s -> %s", config.local_path, remote_loc)
+      log.info("published file: %s", remote_loc)
     elif os.path.exists(local_path):
       # TODO: Consider handling symlinks.
-      raise ValueError("only files or directories supported: %s" % local_path)
+      raise ValueError("Only files or directories supported: %r" % local_path)
     else:
-      raise ValueError("file not found: %s" % local_path)
+      raise ValueError("File not found: %r" % local_path)
 
   @log_calls
   def install(self, config, version, force=False):
@@ -311,8 +254,8 @@ class FileCache(object):
       _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
     else:
       # First try it as a directory/archive.
-      remote_archive_loc = self.remote_loc(config, version, ARCHIVE_SUFFIX)
-      cached_archive_path = self.cache_path(config, version, suffix=ARCHIVE_SUFFIX)
+      remote_archive_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
+      cached_archive_path = self.cache_path(config, version, suffix=ARCHIVER.suffix)
       is_dir = True
       # TODO: This could be cleaner, but it's nice to be data-driven and not require a config saying it's a dir or file.
       log.debug("checking if it's a directory by seeing if archive suffix exits")
@@ -354,7 +297,7 @@ def version_for(config):
     popenargs = shell_expand_to_popen(config.version_command, os.environ)
     output = subprocess.check_output(popenargs, stderr=SHELL_OUTPUT, stdin=DEV_NULL).strip()
     if not configs.CONFIG_VERSION_RE.match(output):
-      raise configs.ConfigError("invalid version output from version command: '%s'" % output)
+      raise configs.ConfigError("Invalid version output from version command: %r" % output)
     bits.append(output)
 
   return "-".join(bits)
@@ -395,8 +338,9 @@ def run_command(command, override_path=None, force=False):
       raise AssertionError("unknown command: " + command)
 
 # TODO:
-# - failover_command that is executed if install fails, and failover_publish
-# - failover_publish flag
+# - consider new feature:
+#   failover_command that is executed if install fails,
+#   and a flag failover_publish indicating whether to publish
 # - merge command-line args and config file values?
 # - --no-cache option that just downloads
 # - think how to auto-purge all but one resource per branch (say) (and generalize to env variable)

@@ -48,23 +48,22 @@ items:
 
 # Check contents before.
 ls_portable
--rw-r--r-- instaclone.yml
-drwxr-xr-x test-dir/
--rw-r--r-- test-file1
--rw-r--r-- test-file2
--rw-r--r-- test-file2-hashable
+-rw-r--r-- instaclone.yml  
+drwxr-xr-x test-dir/  
+-rw-r--r-- test-file1  
+-rw-r--r-- test-file2  
+-rw-r--r-- test-file2-hashable  
 
 ls_portable test-dir/
--rw-r--r-- file-a
--rw-r--r-- file-b
-drwxr-xr-x subdir/
-lrwxr-xr-x file-a
-lrwxr-xr-x symlink-file-a
+-rw-r--r-- file-a  
+-rw-r--r-- file-b  
+drwxr-xr-x subdir/  
+lrwxr-xr-x symlink-file-a@ -> file-a
+lrwxr-xr-x symlink-symlink-file-a@ -> symlink-file-a
 
 ls_portable test-dir/subdir/
--rw-r--r-- file-c
-lrwxr-xr-x /tmp/external-test-file
-lrwxr-xr-x ../file-b
+-rw-r--r-- file-c  
+lrwxr-xr-x symlink-file-b@ -> ../file-b
 
 head -10 test-dir/file-* test-file{1,2}
 ==> test-dir/file-a <==
@@ -86,7 +85,7 @@ run install || expect_error
 using config file: ./instaclone.yml
 cache dir not found, so creating: __DIR/.instaclone/cache
 initializing new cache: __DIR/.instaclone/cache
-downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.zip __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.zip.partial.__X
+downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
 installing file: test-file1 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
@@ -98,36 +97,36 @@ error: Command '['s4cmd', 'get', 's3://__BUCKET/tmp/instaclone-tests/another-fol
 run publish
 using config file: ./instaclone.yml
 using cache: __DIR/.instaclone/cache
-installing to cache: test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 uploading: s4cmd put -f __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 => s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
-published file: test-file1 -> s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
-installing to cache: test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installed to cache: test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+published file: s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 uploading: s4cmd put -f __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 => s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
-published file: test-file2 -> s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
-installing to cache: test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
-compress: zip -q -r __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X .
-uploading: s4cmd put -f __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
-__DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip => s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
-decompress: ditto -x -k __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip .
-published directory archive: test-dir -> s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
+installed to cache: test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+published file: s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+creating archive: test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
+added 8 items to archive (3 were symlinks, 0 followed)
+uploading: s4cmd put -f __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
+__DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz => s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
+installed to cache: test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+published archive: s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
 
 # Check for results of publish.
 ls_portable
--rw-r--r-- instaclone.yml
-lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
-drwxr-xr-x test-dir.bak/
-lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
--r--r--r-- test-file2
--rw-r--r-- test-file2-hashable
+-rw-r--r-- instaclone.yml  
+lrwxr-xr-x test-dir@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+drwxr-xr-x test-dir.bak/  
+lrwxr-xr-x test-file1@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+-r--r--r-- test-file2  
+-rw-r--r-- test-file2-hashable  
 
 ls_portable test-dir/
--r--r--r-- file-a
--r--r--r-- file-b
-dr-xr-xr-x subdir/
--r--r--r-- symlink-file-a
--r--r--r-- symlink-symlink-file-a
+-r--r--r-- file-a  
+-r--r--r-- file-b  
+dr-xr-xr-x subdir/  
+lrwxr-xr-x symlink-file-a@ -> file-a
+lrwxr-xr-x symlink-symlink-file-a@ -> symlink-file-a
 
 head -10 test-dir/file-* test-file{1,2}
 ==> test-dir/file-a <==
@@ -148,7 +147,7 @@ contents
 # Publish again.
 run publish || expect_error
 using config file: ./instaclone.yml
-error: cannot publish symlinks (is path already published?): test-file1
+error: Cannot publish symlinks (is path already published?): 'test-file1'
 (run with --debug for traceback info)
 (got expected error: status 2)
 
@@ -169,17 +168,17 @@ run install || expect_error
 using config file: ./instaclone.yml
 cache dir not found, so creating: __DIR/.instaclone/cache
 initializing new cache: __DIR/.instaclone/cache
-downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.zip __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.zip.partial.__X
+downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
 installing file: test-file1 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 => __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
-downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.zip __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.zip.partial.__X
+downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
 installing file: test-file2 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 => __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
-error: target already exists: test-file2
+error: Target already exists: 'test-file2'
 (run with --debug for traceback info)
 (got expected error: status 2)
 
@@ -188,26 +187,25 @@ using config file: ./instaclone.yml
 using cache: __DIR/.instaclone/cache
 installing from cache: test-file1 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 installing from cache: test-file2 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
-downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
-s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip => __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
-installing directory: test-dir <- __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
-decompress: ditto -x -k __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip .
+downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
+s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz => __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
+installing directory: test-dir <- __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
 
 # Check contents once more.
 ls_portable
--rw-r--r-- instaclone.yml
-lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
-drwxr-xr-x test-dir.bak/
-lrwxr-xr-x __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
--r--r--r-- test-file2
--rw-r--r-- test-file2-hashable
+-rw-r--r-- instaclone.yml  
+lrwxr-xr-x test-dir@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+drwxr-xr-x test-dir.bak/  
+lrwxr-xr-x test-file1@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+-r--r--r-- test-file2  
+-rw-r--r-- test-file2-hashable  
 
 ls_portable test-dir/
--r--r--r-- file-a
--r--r--r-- file-b
-dr-xr-xr-x subdir/
--r--r--r-- symlink-file-a
--r--r--r-- symlink-symlink-file-a
+-r--r--r-- file-a  
+-r--r--r-- file-b  
+dr-xr-xr-x subdir/  
+lrwxr-xr-x symlink-file-a@ -> file-a
+lrwxr-xr-x symlink-symlink-file-a@ -> symlink-file-a
 
 # Try non-default instaclone cache directory.
 export INSTACLONE_DIR=/tmp/instaclone-dir
@@ -218,20 +216,19 @@ run install -f
 using config file: ./instaclone.yml
 cache dir not found, so creating: /tmp/instaclone-dir/cache
 initializing new cache: /tmp/instaclone-dir/cache
-downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.zip /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.zip.partial.__X
+downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
 installing file: test-file1 <- /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 => /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
-downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.zip /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.zip.partial.__X
+downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.tar.gz /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
 installing file: test-file2 <- /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 => /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
-downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
-s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip => /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip.partial.__X
-installing directory: test-dir <- /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip
-decompress: ditto -x -k /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.zip .
+downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
+s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz => /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
+installing directory: test-dir <- /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
 
 # Leave files installed in case it's helpful to debug anything.
 
