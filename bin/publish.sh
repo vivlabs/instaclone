@@ -14,7 +14,7 @@ if [[ "$release" != "$confirm_release" ]]; then
   exit 1
 fi
 
-if [[ $(git status -s -uno | wc -l) != "0" ]]; then
+if [[ "$(git status -s -uno | wc -l | xargs)" != "0" ]]; then
   echo "error: Uncomitted changes!"
   exit 1
 fi
