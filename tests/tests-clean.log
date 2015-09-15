@@ -87,7 +87,6 @@ cache dir not found, so creating: __DIR/.instaclone/cache
 initializing new cache: __DIR/.instaclone/cache
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
-installing file: test-file1 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
 [Runtime Failure] Source doesn't exist.
 error: Command '['s4cmd', 'get', 's3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1', '__DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X']' returned non-zero exit status 1
@@ -154,9 +153,9 @@ error: Cannot publish symlinks (is path already published?): 'test-file1'
 run install -f
 using config file: ./instaclone.yml
 using cache: __DIR/.instaclone/cache
-installing from cache: test-file1 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
-installing from cache: test-file2 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
-installing from cache: test-dir <- __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+installed from cache: test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installed from cache: test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installed from cache: test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
 
 # Try cleaning cache again and re-installing.
 
@@ -170,14 +169,16 @@ cache dir not found, so creating: __DIR/.instaclone/cache
 initializing new cache: __DIR/.instaclone/cache
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
-installing file: test-file1 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 => __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
+downloaded published file: s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installed file: test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
-installing file: test-file2 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 => __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
+downloaded published file: s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installed file: test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 error: Target already exists: 'test-file2'
 (run with --debug for traceback info)
 (got expected error: status 2)
@@ -185,11 +186,12 @@ error: Target already exists: 'test-file2'
 run install -f
 using config file: ./instaclone.yml
 using cache: __DIR/.instaclone/cache
-installing from cache: test-file1 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
-installing from cache: test-file2 <- __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installed from cache: test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installed from cache: test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
 s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz => __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
-installing directory: test-dir <- __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
+downloaded published archive: s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
+installed directory: test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
 
 # Check contents once more.
 ls_portable
@@ -218,17 +220,20 @@ cache dir not found, so creating: /tmp/instaclone-dir/cache
 initializing new cache: /tmp/instaclone-dir/cache
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
-installing file: test-file1 <- /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1 => /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1.partial.__X
+downloaded published file: s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installed file: test-file1 -> /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.tar.gz /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.tar.gz.partial.__X
 [Runtime Failure] Source doesn't exist.
-installing file: test-file2 <- /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 <- s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 downloading: s4cmd get s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
 s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2 => /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2.partial.__X
+downloaded published file: s3://__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installed file: test-file2 -> /tmp/instaclone-dir/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
 s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz => /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
-installing directory: test-dir <- /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir <- s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
+downloaded published archive: s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
+installed directory: test-dir -> /tmp/instaclone-dir/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
 
 # Leave files installed in case it's helpful to debug anything.
 

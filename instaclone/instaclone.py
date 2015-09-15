@@ -250,8 +250,8 @@ class FileCache(object):
     cached_path = self.cache_path(config, version)
     if os.path.exists(cached_path):
       # It's a cached file or a cached directory and we've already unpacked it.
-      log.info("installing from cache: %s <- %s", config.local_path, cached_path)
       _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
+      log.info("installed from cache: %s -> %s", config.local_path, cached_path)
     else:
       # First try it as a directory/archive.
       remote_archive_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
@@ -265,12 +265,14 @@ class FileCache(object):
         log.debug("doesn't look like an archived directory, so treating it as a file")
         is_dir = False
       if is_dir:
-        log.info("installing directory: %s <- %s <- %s", config.local_path, cached_path, remote_archive_loc)
+        log.info("downloaded published archive: %s", remote_archive_loc)
         _decompress_dir(cached_archive_path, cached_path, force=force)
+        log.info("installed directory: %s -> %s", config.local_path, cached_path)
       else:
         remote_loc = self.remote_loc(config, version)
-        log.info("installing file: %s <- %s <- %s", config.local_path, cached_path, remote_loc)
         _download_file(config.download_command, remote_loc, cached_path)
+        log.info("downloaded published file: %s", remote_loc)
+        log.info("installed file: %s -> %s", config.local_path, cached_path)
 
       _make_readonly(cached_path)
       _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
