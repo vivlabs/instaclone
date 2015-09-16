@@ -112,7 +112,11 @@ A simpler and more scalable solution to this is to archive the entire `node_modu
 
 Instaclone does all this for you. If you already have an `npm shrinkwrap` workflow, it's pretty easy. It lets you specify where to store your `node_modules` in S3, and version that entire tree by the SHA1 hash of the `npm-shrinkwrap.json` file togetehr with the architecture. You can then work on multiple branches and swap them in and out -- a bit like how `nvm` caches Node installations.
 
-Copy and edit [the example config file](examples/npm-install/instaclone.yml) to try it.
+Copy and edit [the example config file](examples/npm-install/instaclone.yml) to try it. On your CI system, you might want to have some sort of automation that tries to reuse pre-published versions, but if not, publishes automatically:
+```
+  echo "Running instaclone install and publish..."
+  instaclone install || (rm -rf ./node_modules && npm install && instaclone publish)
+```
 
 ## Maturity
 
