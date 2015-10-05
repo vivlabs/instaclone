@@ -21,11 +21,11 @@ try:
 except ImportError:
   import subprocess
 
-from strif import atomic_output_file, write_string_to_file, DEV_NULL
-from strif import move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1
-from strif import make_all_dirs, make_parent_dirs, chmod_native
-from strif import shell_expand_to_popen
-from strif import dict_merge
+from strif import (atomic_output_file, write_string_to_file, DEV_NULL,
+                   move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1,
+                   make_all_dirs, make_parent_dirs, chmod_native,
+                   shell_expand_to_popen,
+                   dict_merge)
 
 import archives
 import configs
@@ -217,12 +217,14 @@ class FileCache(object):
       remote_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
 
       # We archive and then unarchive, to make sure we expand symlinks exactly the way
-      # a future installation would (using zip/unzip).
+      # a future installation would.
       # TODO: This is usually what we want (think of relative symlinks like ../../foo), but we could make it an option.
       log.debug("installing to cache: %s -> %s", local_path, cached_path)
       _compress_dir(local_path, cached_archive, force=force)
       _upload_file(config.upload_command, cached_archive, remote_loc)
       _decompress_dir(cached_archive, cached_path, force=force)
+      # If everything has succeeded, we can safely delete the archive to save space.
+      os.unlink(cached_archive)
       # Leave the previous version of the tree as a backup.
       log.info("installed to cache: %s -> %s", local_path, cached_path)
       _install_from_cache(cached_path, local_path, config.copy_type, force=True, make_backup=True)
@@ -238,9 +240,10 @@ class FileCache(object):
       log.info("installed to cache: %s -> %s", local_path, cached_path)
       _install_from_cache(cached_path, local_path, config.copy_type, force=False, make_backup=False)
       log.info("published file: %s", remote_loc)
+    elif os.path.islink(local_path):
+      raise ValueError("Can't publish a symlink (is this already installed?): %r" % local_path)
     elif os.path.exists(local_path):
-      # TODO: Consider handling symlinks.
-      raise ValueError("Only files or directories supported: %r" % local_path)
+      raise ValueError("Only files or directories can be published: %r" % local_path)
     else:
       raise ValueError("File not found: %r" % local_path)
 
@@ -257,7 +260,7 @@ class FileCache(object):
       remote_archive_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
       cached_archive_path = self.cache_path(config, version, suffix=ARCHIVER.suffix)
       is_dir = True
-      # TODO: This could be cleaner, but it's nice to be data-driven and not require a config saying it's a dir or file.
+      # This could be cleaner, but it's nice to be data-driven and not require a config saying it's a dir or file.
       log.debug("checking if it's a directory by seeing if archive suffix exits")
       try:
         _download_file(config.download_command, remote_archive_loc, cached_archive_path)
@@ -267,6 +270,8 @@ class FileCache(object):
       if is_dir:
         log.info("downloaded published archive: %s", remote_archive_loc)
         _decompress_dir(cached_archive_path, cached_path, force=force)
+        # If everything has succeeded, we can safely delete the archive to save space.
+        os.unlink(cached_archive_path)
         log.info("installed directory: %s -> %s", config.local_path, cached_path)
       else:
         remote_loc = self.remote_loc(config, version)
