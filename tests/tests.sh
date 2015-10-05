@@ -75,6 +75,8 @@ run publish || expect_error
 
 run install -f
 
+find $HOME/.instaclone/cache -type f
+
 # Try cleaning cache again and re-installing.
 
 run purge
