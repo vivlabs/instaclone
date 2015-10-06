@@ -17,20 +17,20 @@ import strif
 
 from log_calls import log_calls
 
-_required_fields = "local_path remote_path remote_prefix copy_type upload_command download_command"
+_required_fields = "local_path remote_path remote_prefix install_method upload_command download_command"
 _other_fields = "version version_hashable version_command"
 
 ConfigBase = namedtuple("ConfigBase", _other_fields + " " + _required_fields)
 
 CONFIGS_REQUIRED = _required_fields.split()
 CONFIGS_DEFAULTS = {
-  "copy_type": "symlink"
+  "install_method": "symlink"
 }
 CONFIG_DESCRIPTIONS = {
   "local_path": "the local target path to sync to, relative to current dir",
   "remote_path": "remote path (in backing store such as S3) to sync to",
   "remote_prefix": "remote path prefix (such as s3://my-bucket/instaclone) to sync to",
-  "copy_type": "the way to install files, either 'symlink' or 'copy'",
+  "install_method": "the way to install files, either 'symlink' or 'copy'",
   "upload_command": "shell command template to upload file",
   "download_command": "shell command template to download file",
   "version": "explicit version string to use",
@@ -64,7 +64,7 @@ class ConfigError(RuntimeError):
   pass
 
 
-CopyType = Enum("CopyType", "copy symlink hardlink")
+InstallMethod = Enum("InstallMethod", "copy symlink hardlink")
 
 
 @lru_cache(maxsize=None)
@@ -129,6 +129,11 @@ def _parse_and_validate(raw_config_list):
   """
   items = []
   for raw in raw_config_list:
+    # Legacy fix for renamed key. TODO: Remove this after a while.
+    if "copy_type" in raw:
+      raw["install_method"] = raw["copy_type"]
+      del raw["copy_type"]
+
     # Validation.
     for key in CONFIGS_REQUIRED:
       if key not in raw or raw[key] is None:
@@ -160,9 +165,9 @@ def _parse_and_validate(raw_config_list):
 
     # Parse enums.
     try:
-      raw["copy_type"] = CopyType[raw["copy_type"]]
+      raw["install_method"] = InstallMethod[raw["install_method"]]
     except KeyError:
-      raise ConfigError("invalid copy type: %s" % raw["copy_type"])
+      raise ConfigError("invalid copy type: %s" % raw["install_method"])
 
     items.append(Config(**raw))
 

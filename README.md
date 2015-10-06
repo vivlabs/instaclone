@@ -67,7 +67,6 @@ items:
     remote_path: some/big-resources
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink
     # This is the version of the file. It can be any string.
     version: 42a
 
@@ -76,7 +75,6 @@ items:
     remote_path: my-app/node-stuff
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink
     # We generate the version string as a hash of the npm-shrinkwrap.json plus the architecture we're on:
     version_hashable: npm-shrinkwrap.json
     version_command: uname

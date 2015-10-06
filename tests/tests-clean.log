@@ -15,9 +15,9 @@ purging cache: __DIR/.instaclone/cache
 
 # Error invocations.
 run bad_command || expect_error
-usage: main.py [-h] [-v] [--config CONFIG] [-f] [--debug] [--local-path S]
-               [--version-string S] [--version-hashable S]
-               [--upload-command S] [--remote-prefix S] [--copy-type S]
+usage: main.py [-h] [-v] [--config CONFIG] [-f] [--debug] [--install-method S]
+               [--local-path S] [--version-string S] [--upload-command S]
+               [--remote-prefix S] [--version-hashable S]
                [--version-command S] [--download-command S] [--remote-path S]
                {publish,install,purge,configs}
 main.py: error: argument command: invalid choice: 'bad_command' (choose from 'publish', 'install', 'purge', 'configs')
@@ -26,22 +26,22 @@ main.py: error: argument command: invalid choice: 'bad_command' (choose from 'pu
 run configs
 using config file: ./instaclone.yml
 items:
-- copy_type: symlink
-  download_command: s4cmd get $REMOTE $LOCAL
+- download_command: s4cmd get $REMOTE $LOCAL
+  install_method: symlink
   local_path: test-file1
   remote_path: another-folder
   remote_prefix: s3://__BUCKET/tmp/instaclone-tests
   upload_command: s4cmd put -f $LOCAL $REMOTE
   version: v11
-- copy_type: copy
-  download_command: s4cmd get $REMOTE $LOCAL
+- download_command: s4cmd get $REMOTE $LOCAL
+  install_method: copy
   local_path: test-file2
   remote_path: another-folder
   remote_prefix: s3://__BUCKET/tmp/instaclone-tests
   upload_command: s4cmd put -f $LOCAL $REMOTE
   version: v22
-- copy_type: symlink
-  download_command: s4cmd get $REMOTE $LOCAL
+- download_command: s4cmd get $REMOTE $LOCAL
+  install_method: symlink
   local_path: test-dir
   remote_path: some/remote/folder
   remote_prefix: s3://__BUCKET/instaclone/tmp-tests

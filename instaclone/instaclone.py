@@ -98,7 +98,7 @@ def _decompress_dir(archive_path, target_path, force=False):
 
 
 @log_calls
-def _install_from_cache(cache_path, target_path, copy_type, force=False, make_backup=False):
+def _install_from_cache(cache_path, target_path, install_method, force=False, make_backup=False):
   """
   Install a file or directory from cache, either symlinking, hardlinking, or copying.
   """
@@ -118,19 +118,19 @@ def _install_from_cache(cache_path, target_path, copy_type, force=False, make_ba
 
   if not os.path.exists(cache_path):
     raise AssertionError("Cached file missing: %r" % cache_path)
-  if copy_type == configs.CopyType.symlink:
+  if install_method == configs.InstallMethod.symlink:
     checked_remove()
     os.symlink(cache_path, target_path)
-  elif copy_type == configs.CopyType.hardlink:
+  elif install_method == configs.InstallMethod.hardlink:
     if os.path.isdir(cache_path):
       raise AppError("Can't hardlink a directory: %r" % cache_path)
     checked_remove()
     os.link(cache_path, target_path)
-  elif copy_type == configs.CopyType.copy:
+  elif install_method == configs.InstallMethod.copy:
     checked_remove()
     copytree_atomic(cache_path, target_path)
   else:
-    raise AssertionError("Invalid copy_type: %r" % copy_type)
+    raise AssertionError("Invalid install_method: %r" % install_method)
 
 
 VERSION_SEP = ".$"
@@ -227,7 +227,7 @@ class FileCache(object):
       os.unlink(cached_archive)
       # Leave the previous version of the tree as a backup.
       log.info("installed to cache: %s -> %s", local_path, cached_path)
-      _install_from_cache(cached_path, local_path, config.copy_type, force=True, make_backup=True)
+      _install_from_cache(cached_path, local_path, config.install_method, force=True, make_backup=True)
       log.info("published archive: %s", remote_loc)
     elif os.path.isfile(local_path):
       remote_loc = self.remote_loc(config, version)
@@ -238,7 +238,7 @@ class FileCache(object):
       movefile(local_path, cached_path, make_parents=True)
       _upload_file(config.upload_command, cached_path, remote_loc)
       log.info("installed to cache: %s -> %s", local_path, cached_path)
-      _install_from_cache(cached_path, local_path, config.copy_type, force=False, make_backup=False)
+      _install_from_cache(cached_path, local_path, config.install_method, force=False, make_backup=False)
       log.info("published file: %s", remote_loc)
     elif os.path.islink(local_path):
       raise ValueError("Can't publish a symlink (is this already installed?): %r" % local_path)
@@ -253,7 +253,7 @@ class FileCache(object):
     cached_path = self.cache_path(config, version)
     if os.path.exists(cached_path):
       # It's a cached file or a cached directory and we've already unpacked it.
-      _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
+      _install_from_cache(cached_path, config.local_path, config.install_method, force=force)
       log.info("installed from cache: %s -> %s", config.local_path, cached_path)
     else:
       # First try it as a directory/archive.
@@ -280,7 +280,7 @@ class FileCache(object):
         log.info("installed file: %s -> %s", config.local_path, cached_path)
 
       _make_readonly(cached_path)
-      _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
+      _install_from_cache(cached_path, config.local_path, config.install_method, force=force)
 
   @log_calls
   def purge(self):
