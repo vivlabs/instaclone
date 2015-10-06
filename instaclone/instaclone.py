@@ -200,8 +200,8 @@ class FileCache(object):
   @staticmethod
   def versioned_path(config, version, suffix=""):
     return os.path.join(config.remote_path,
-                        "%s%s%s%s" % (config.local_path, VERSION_SEP, version, VERSION_END),
-                        "%s%s" % (os.path.basename(config.local_path), suffix))
+                        "%s%s%s%s" % (config.name, VERSION_SEP, version, VERSION_END),
+                        "%s%s" % (os.path.basename(config.name), suffix))
 
   @staticmethod
   def pathify_remote_loc(remote_loc):
@@ -343,10 +343,24 @@ Command = Enum("Command", "publish install purge configs")
 _command_list = [c.name for c in Command]
 
 
-def run_command(command, override_path=None, overrides=None, force=False):
+def select_configs(config_list, items):
+  """Select configs by name, or all configs if none specified."""
+  if items:
+    log.debug("selecting configs for items: %s", items)
+    new_config_list = []
+    for item in items:
+      matches = filter(lambda config: config.name == item, config_list)
+      if len(matches) < 1:
+        raise ValueError("Could not find config for item: %s" % item)
+      new_config_list.append(matches[0])
+    config_list = new_config_list
+  return config_list
+
+
+def run_command(command, override_path=None, overrides=None, force=False, items=None):
   # Nondestructive commands that don't require cache.
   if command == Command.configs:
-    config_list = configs.load(override_path=override_path, overrides=overrides)
+    config_list = select_configs(configs.load(override_path=override_path, overrides=overrides), items)
     configs.print_configs(config_list)
 
   # Destructive commands that require cache but not configs.
@@ -356,7 +370,8 @@ def run_command(command, override_path=None, overrides=None, force=False):
 
   # Commands that require cache and configs.
   else:
-    config_list = configs.load(override_path=override_path, overrides=overrides)
+    config_list = select_configs(configs.load(override_path=override_path, overrides=overrides), items)
+
     file_cache = FileCache(configs.set_up_cache_dir())
 
     if command == Command.publish:

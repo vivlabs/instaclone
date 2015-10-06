@@ -19,7 +19,7 @@ usage: main.py [-h] [-v] [--config CONFIG] [-f] [--copy] [--debug]
                [--install-method S] [--local-path S] [--version-string S]
                [--upload-command S] [--remote-prefix S] [--version-hashable S]
                [--version-command S] [--download-command S] [--remote-path S]
-               {publish,install,purge,configs}
+               {publish,install,purge,configs} [items [items ...]]
 main.py: error: argument command: invalid choice: 'bad_command' (choose from 'publish', 'install', 'purge', 'configs')
 (got expected error: status 2)
 
@@ -40,6 +40,18 @@ items:
   remote_prefix: s3://__BUCKET/tmp/instaclone-tests
   upload_command: s4cmd put -f $LOCAL $REMOTE
   version: v22
+- download_command: s4cmd get $REMOTE $LOCAL
+  install_method: symlink
+  local_path: test-dir
+  remote_path: some/remote/folder
+  remote_prefix: s3://__BUCKET/instaclone/tmp-tests
+  upload_command: s4cmd put -f $LOCAL $REMOTE
+  version_command: echo testver
+  version_hashable: test-file2-hashable
+
+run configs test-dir
+using config file: ./instaclone.yml
+items:
 - download_command: s4cmd get $REMOTE $LOCAL
   install_method: symlink
   local_path: test-dir
@@ -222,6 +234,7 @@ lrwxr-xr-x symlink-symlink-file-a@ -> symlink-file-a
 
 # Try a copy installation.
 rm test-file1 test-file2 test-dir
+rm -rf *.bak
 
 run install --copy
 using config file: ./instaclone.yml
@@ -234,7 +247,6 @@ installed from cache (fastcopy): test-dir -> __DIR/.instaclone/cache/contents/s3
 ls_portable
 -rw-r--r-- instaclone.yml  
 drwxr-xr-x test-dir/  
-drwxr-xr-x test-dir.bak/  
 -rw-r--r-- test-file1  
 -rw-r--r-- test-file2  
 -rw-r--r-- test-file2-hashable  
@@ -245,6 +257,22 @@ ls_portable test-dir/
 drwxr-xr-x subdir/  
 lrwxr-xr-x symlink-file-a@ -> file-a
 lrwxr-xr-x symlink-symlink-file-a@ -> symlink-file-a
+
+# Test installation of a single item, as well as command line override.
+run install test-dir --local-path alt-test-dir
+using config file: ./instaclone.yml
+using cache: __DIR/.instaclone/cache
+installed from cache (symlink): alt-test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+
+ls_portable
+lrwxr-xr-x alt-test-dir@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+-rw-r--r-- instaclone.yml  
+drwxr-xr-x test-dir/  
+-rw-r--r-- test-file1  
+-rw-r--r-- test-file2  
+-rw-r--r-- test-file2-hashable  
+
+diff -r test-dir alt-test-dir
 
 # Try non-default instaclone cache directory.
 export INSTACLONE_DIR=/tmp/instaclone-dir

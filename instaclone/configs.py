@@ -17,13 +17,14 @@ import strif
 
 from log_calls import log_calls
 
+_NAME_FIELD = "name"
 _required_fields = "local_path remote_path remote_prefix install_method upload_command download_command"
 _other_fields = "version version_hashable version_command"
 
-ConfigBase = namedtuple("ConfigBase", _other_fields + " " + _required_fields)
+ConfigBase = namedtuple("ConfigBase", _NAME_FIELD + " " + _other_fields + " " + _required_fields)
 
 CONFIGS_REQUIRED = _required_fields.split()
-CONFIGS_DEFAULTS = {
+CONFIG_DEFAULTS = {
   "install_method": "symlink"
 }
 CONFIG_DESCRIPTIONS = {
@@ -37,6 +38,8 @@ CONFIG_DESCRIPTIONS = {
   "version_hashable": "a file path that should be SHA1 hashed to get a version string",
   "version_command": "a shell command that should be run to get a version string",
 }
+# For now, allow anything to be overridden.
+CONFIG_OVERRIDABLE = CONFIG_DESCRIPTIONS.keys()
 
 _CONFIG_VERSION_RE = re.compile("^[\\w.-]+$")
 
@@ -50,7 +53,7 @@ class Config(ConfigBase):
 
   def as_string_dict(self):
     d = dict(self._asdict())
-    return {k: _stringify_config_field(v) for (k, v) in d.iteritems() if v is not None}
+    return {k: _stringify_config_field(v) for (k, v) in d.iteritems() if v is not None and k != _NAME_FIELD}
 
 
 CONFIG_NAME = "instaclone"
@@ -113,6 +116,9 @@ def _load_raw_configs(override_path, defaults, overrides):
       if "copy_type" in config_dict:
         config_dict["install_method"] = config_dict["copy_type"]
         del config_dict["copy_type"]
+
+      # Name this config (since we may override the local_path).
+      config_dict["name"] = config_dict["local_path"]
 
       nones = {key: None for key in Config._fields}
       combined = strif.dict_merge(nones, defaults, config_dict, overrides)
@@ -193,7 +199,7 @@ def load(override_path=None, overrides=None):
   """
   if not overrides:
     overrides = {}
-  return _parse_and_validate(_load_raw_configs(override_path, CONFIGS_DEFAULTS, overrides))
+  return _parse_and_validate(_load_raw_configs(override_path, CONFIG_DEFAULTS, overrides))
 
 
 def print_configs(configs, stream=sys.stdout):
