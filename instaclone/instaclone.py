@@ -98,7 +98,7 @@ def _decompress_dir(archive_path, target_path, force=False):
 
 
 def _rsync_dir(source_dir, target_dir):
-  popenargs = ["rsync", "-a", "--delete"]
+  popenargs = ["rsync", "-a", "--delete", "--chmod=u+w"]
   popenargs.append(source_dir.rstrip('/') + '/')
   popenargs.append(target_dir)
   log.info("using rsync for faster copy")
@@ -148,7 +148,6 @@ def _install_from_cache(cache_path, target_path, install_method, force=False, ma
       try:
         clear_symlink()
         _rsync_dir(cache_path, target_path)
-        chmod_native(target_path, "u+w", recursive=True)
       except OSError as e:
         log.info("rsync doesn't seem to be here (%s), so will copy instead", e)
         checked_remove()
