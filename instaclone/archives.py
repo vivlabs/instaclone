@@ -124,7 +124,7 @@ def _autodetect_unzip_command():
     pass
 
   # On MacOS Yosemite, unzip does not support Zip64, but ditto is available.
-  # See: https://github.com/jlevy/instaclone/issues/1
+  # See: https://github.com/vivlabs/instaclone/issues/1
   if not unzip_cmd or not unzip_output or unzip_output.find("ZIP64_SUPPORT") < 0:
     log.debug("did not find 'unzip' with Zip64 support; trying ditto")
     try:

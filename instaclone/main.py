@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-For further documentation, see: https://github.com/jlevy/instaclone
+For further documentation, see: https://github.com/vivlabs/instaclone
 """
 
 from __future__ import print_function
@@ -10,7 +10,7 @@ import argparse
 import sys
 
 NAME = "instaclone"
-VERSION = "0.2.2"
+VERSION = "0.3.0"
 DESCRIPTION = "instaclone: Fast, cached installations of versioned files"
 LONG_DESCRIPTION = __doc__
 
