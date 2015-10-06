@@ -55,17 +55,12 @@ def main():
 
   # XXX Unfortunately the setting "version" conflicts with argparse's --version.
   for (key, desc) in configs.CONFIG_DESCRIPTIONS.iteritems():
-    if key == "version":
-      parser.add_argument("--version-string", metavar="S", help="setting override (single item)")
-    else:
-      parser.add_argument("--" + key.replace("_", "-"), metavar="S", help="setting override (single item)")
+    parser.add_argument("--" + key.replace("_", "-"), metavar="S", help="setting override (single item)")
 
   args = parser.parse_args()
 
   overrides = {}
   for key in configs.CONFIG_OVERRIDABLE:
-    if key == "version":
-      continue
     value = args.__dict__.get(key)
     if value is not None:
       if len(args.items) == 1:

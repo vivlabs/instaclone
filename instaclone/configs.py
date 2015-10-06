@@ -19,7 +19,7 @@ from log_calls import log_calls
 
 _NAME_FIELD = "name"
 _required_fields = "local_path remote_path remote_prefix install_method upload_command download_command"
-_other_fields = "version version_hashable version_command"
+_other_fields = "version_string version_hashable version_command"
 
 ConfigBase = namedtuple("ConfigBase", _NAME_FIELD + " " + _other_fields + " " + _required_fields)
 
@@ -34,7 +34,7 @@ CONFIG_DESCRIPTIONS = {
   "install_method": "the way to install files, either 'symlink' or 'copy'",
   "upload_command": "shell command template to upload file",
   "download_command": "shell command template to download file",
-  "version": "explicit version string to use",
+  "version_string": "explicit version string to use",
   "version_hashable": "a file path that should be SHA1 hashed to get a version string",
   "version_command": "a shell command that should be run to get a version string",
 }
@@ -146,10 +146,10 @@ def _parse_and_validate(raw_config_list):
       if key not in raw or raw[key] is None:
         raise ConfigError("must specify '%s' in item config: %s" % (key, raw))
 
-    if "version" in raw and not _CONFIG_VERSION_RE.match(str(raw["version"])):
-      raise ConfigError("invalid version string: '%s'" % raw["version"])
-    if "version" not in raw and "version_hashable" not in raw and "version_command" not in raw:
-      raise ConfigError("must specify 'version', 'version_hashable', or 'version_command' in item config: %s" % raw)
+    if "version_string" in raw and not _CONFIG_VERSION_RE.match(str(raw["version_string"])):
+      raise ConfigError("invalid version string: '%s'" % raw["version_string"])
+    if "version_string" not in raw and "version_hashable" not in raw and "version_command" not in raw:
+      raise ConfigError("must specify 'version_string', 'version_hashable', or 'version_command' in item config: %s" % raw)
 
     # Validate shell templates.
     # For these, we don't expand environment variables here, but instead do it at once at call time.

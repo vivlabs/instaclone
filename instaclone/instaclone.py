@@ -319,8 +319,8 @@ def version_for(config):
   The version for an item is either the explicit version specified by the user, or the SHA1 hash of hashable file.
   """
   bits = []
-  if config.version:
-    bits.append(str(config.version))
+  if config.version_string:
+    bits.append(str(config.version_string))
   if config.version_hashable:
     log.debug("computing sha1 of: %s", config.version_hashable)
     bits.append(file_sha1(config.version_hashable))

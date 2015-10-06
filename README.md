@@ -68,8 +68,8 @@ items:
     remote_path: some/big-resources
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    # This is the version of the file. It can be any string.
-    version: 42a
+    # This is an explicitly set version of the file. It can be any string.
+    version_string: 42a
 
   - local_path: node_modules
     remote_prefix: s3://my-bucket/instaclone-resources
