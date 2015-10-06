@@ -97,8 +97,14 @@ def _decompress_dir(archive_path, target_path, force=False):
     ARCHIVER.unarchive(archive_path, temp_dir)
 
 
-def _rsync_dir(source_dir, target_dir):
-  popenargs = ["rsync", "-a", "--delete", "--chmod=u+w"]
+def _rsync_dir(source_dir, target_dir, chmod=None):
+  """
+  Use rsync to clone source_dir to target_dir. Preserves the original owners and permissions.
+  As an optimization, rsync also allows perms to be partly modified as files are synced.
+  """
+  popenargs = ["rsync", "-a", "--delete"]
+  if chmod:
+    popenargs.append("--chmod=%s" % chmod)
   popenargs.append(source_dir.rstrip('/') + '/')
   popenargs.append(target_dir)
   log.info("using rsync for faster copy")
@@ -147,7 +153,8 @@ def _install_from_cache(cache_path, target_path, install_method, force=False, ma
       # Try it and see if rsync is available.
       try:
         clear_symlink()
-        _rsync_dir(cache_path, target_path)
+        # Ensure we add write perms since the cache has read-only perms. Other perms will be preserved.
+        _rsync_dir(cache_path, target_path, chmod="u+w")
       except OSError as e:
         log.info("rsync doesn't seem to be here (%s), so will copy instead", e)
         checked_remove()
