@@ -303,7 +303,7 @@ def version_for(config):
     log.debug("version command: %s", config.version_command)
     popenargs = shell_expand_to_popen(config.version_command, os.environ)
     output = subprocess.check_output(popenargs, stderr=SHELL_OUTPUT, stdin=DEV_NULL).strip()
-    if not configs.CONFIG_VERSION_RE.match(output):
+    if not configs._CONFIG_VERSION_RE.match(output):
       raise configs.ConfigError("Invalid version output from version command: %r" % output)
     bits.append(output)
 
@@ -317,10 +317,10 @@ Command = Enum("Command", "publish install purge configs")
 _command_list = [c.name for c in Command]
 
 
-def run_command(command, override_path=None, force=False):
+def run_command(command, override_path=None, overrides=None, force=False):
   # Nondestructive commands that don't require cache.
   if command == Command.configs:
-    config_list = configs.load(override_path=override_path)
+    config_list = configs.load(override_path=override_path, overrides=overrides)
     configs.print_configs(config_list)
 
   # Destructive commands that require cache but not configs.
@@ -348,15 +348,14 @@ def run_command(command, override_path=None, force=False):
 # - consider new feature:
 #   failover_command that is executed if install fails,
 #   and a flag failover_publish indicating whether to publish
-# - merge command-line args and config file values?
 # - --no-cache option that just downloads
-# - think how to auto-purge all but one resource per branch (say) (and generalize to env variable)
 # - "clean" command that deletes local resources (requiring -f if not in cache)
 # - "unpublish" command that deletes a remote resource (and purges from cache)
-# - command to unpublish all but most recent n versions of a resource
+# - command to unpublish all but most recent n versions of a resource?
 # - support compressing files as well as archives
 # - consider a pax-based hardlink tree copy option (since pax is cross platform, unlike cp's options)
 # - init command to generate a config
 # - "--offline" mode for install (i.e. will fail if it has to download)
 # - test out more custom transport commands (s3cmd, awscli, wget, etc.)
-# - for the custom transport like curl, figure out handling of shell redirects (or just require)
+# - for the custom transport like curl, figure out handling of shell redirects?
+#   (perhaps better just to require a bash wrapper)

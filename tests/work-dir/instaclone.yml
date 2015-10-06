@@ -6,7 +6,6 @@ items:
     version: v11
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink
 
   - local_path: test-file2
     remote_path: another-folder
@@ -14,7 +13,7 @@ items:
     version: v22
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: hardlink
+    copy_type: copy
 
   - local_path: test-dir
     remote_path: some/remote/folder
@@ -23,4 +22,3 @@ items:
     version_command: echo testver
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink

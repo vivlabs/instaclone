@@ -34,8 +34,13 @@ def log_setup(level):
 
 def main():
   import instaclone
+  import configs
 
-  parser = argparse.ArgumentParser(description=DESCRIPTION, version=VERSION, epilog="\n" + __doc__,
+  config_docs = "Put configuration settings into an instaclone.{yml,json} file. Setting file keys:\n\n%s\n%s" % (
+    "\n".join(["  %s: %s" % (k, v) for (k, v) in configs.CONFIG_DESCRIPTIONS.iteritems()]),
+    "\nSettings may be overridden with corresponding command-line args.\n")
+
+  parser = argparse.ArgumentParser(description=DESCRIPTION, version=VERSION, epilog="\n" + config_docs + __doc__,
                                    formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("command", help="%s command" % NAME, choices=instaclone._command_list)
   parser.add_argument("--config", help="config YAML or JSON file to override usual search path")
@@ -43,7 +48,19 @@ def main():
                       help="force operation, clobbering any existing cached or local targets (use with care)",
                       action="store_true")
   parser.add_argument("--debug", help="enable debugging output", action="store_true")
+  for (name, desc) in configs.CONFIG_DESCRIPTIONS.iteritems():
+    if name == "version":
+      parser.add_argument("--version-string", metavar="S", help="setting override (see below)")
+    else:
+      parser.add_argument("--" + name.replace("_", "-"), metavar="S", help="setting override (see below)")
+
   args = parser.parse_args()
+
+  overrides = {}
+  for (name, desc) in configs.CONFIG_DESCRIPTIONS.iteritems():
+    value = parser.__dict__.get(name)
+    if value is not None:
+      overrides[name.replace("-", "_")] = value
 
   log_setup(log.DEBUG if args.debug else log.INFO)
 
