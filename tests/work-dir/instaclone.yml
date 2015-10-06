@@ -13,7 +13,7 @@ items:
     version: v22
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    install_method: copy
+    install_method: fastcopy
 
   - local_path: test-dir
     remote_path: some/remote/folder

@@ -43,11 +43,16 @@ def main():
   parser = argparse.ArgumentParser(description=DESCRIPTION, version=VERSION, epilog="\n" + config_docs + __doc__,
                                    formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("command", help="%s command" % NAME, choices=instaclone._command_list)
-  parser.add_argument("--config", help="config YAML or JSON file to override usual search path")
+  parser.add_argument("--config", help="YAML or JSON file to use (overrides usual search path)")
   parser.add_argument("-f", "--force",
                       help="force operation, clobbering any existing cached or local targets (use with care)",
                       action="store_true")
+  parser.add_argument("--copy",
+                      help="install via copy/rsync (same as --install-method=fastcopy)",
+                      action="store_true")
   parser.add_argument("--debug", help="enable debugging output", action="store_true")
+
+  # XXX Unfortunately the setting "version" conflicts with argparse's --version.
   for (name, desc) in configs.CONFIG_DESCRIPTIONS.iteritems():
     if name == "version":
       parser.add_argument("--version-string", metavar="S", help="setting override (see below)")
@@ -58,13 +63,20 @@ def main():
 
   overrides = {}
   for (name, desc) in configs.CONFIG_DESCRIPTIONS.iteritems():
+    if name == "version":
+      continue
     value = parser.__dict__.get(name)
     if value is not None:
       overrides[name.replace("-", "_")] = value
+  if args.copy:
+    overrides["install_method"] = "fastcopy"
 
   log_setup(log.DEBUG if args.debug else log.INFO)
 
-  instaclone.run_command(instaclone.Command[args.command], override_path=args.config, force=args.force)
+  log.debug("command-line overrides: %r", overrides)
+
+  instaclone.run_command(instaclone.Command[args.command], override_path=args.config, overrides=overrides,
+                         force=args.force)
 
 
 if __name__ == '__main__':

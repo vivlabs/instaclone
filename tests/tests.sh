@@ -91,6 +91,15 @@ ls_portable
 
 ls_portable test-dir/
 
+# Try a copy installation.
+rm test-file1 test-file2 test-dir
+
+run install --copy
+
+ls_portable
+
+ls_portable test-dir/
+
 # Try non-default instaclone cache directory.
 export INSTACLONE_DIR=/tmp/instaclone-dir
 chmod -R +w $INSTACLONE_DIR || true

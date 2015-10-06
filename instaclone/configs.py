@@ -64,7 +64,7 @@ class ConfigError(RuntimeError):
   pass
 
 
-InstallMethod = Enum("InstallMethod", "copy symlink hardlink")
+InstallMethod = Enum("InstallMethod", "symlink hardlink copy fastcopy")
 
 
 @lru_cache(maxsize=None)
@@ -109,6 +109,11 @@ def _load_raw_configs(override_path, defaults, overrides):
   try:
     items = parsed_configs["items"]
     for config_dict in items:
+      # Legacy fix for renamed key. TODO: Remove this after a while.
+      if "copy_type" in config_dict:
+        config_dict["install_method"] = config_dict["copy_type"]
+        del config_dict["copy_type"]
+
       nones = {key: None for key in Config._fields}
       combined = strif.dict_merge(nones, defaults, config_dict, overrides)
       log.debug("raw, combined config: %r", combined)
@@ -129,10 +134,6 @@ def _parse_and_validate(raw_config_list):
   """
   items = []
   for raw in raw_config_list:
-    # Legacy fix for renamed key. TODO: Remove this after a while.
-    if "copy_type" in raw:
-      raw["install_method"] = raw["copy_type"]
-      del raw["copy_type"]
 
     # Validation.
     for key in CONFIGS_REQUIRED:
@@ -171,6 +172,7 @@ def _parse_and_validate(raw_config_list):
 
     items.append(Config(**raw))
 
+  log.debug("final configs: %s", items)
   return items
 
 

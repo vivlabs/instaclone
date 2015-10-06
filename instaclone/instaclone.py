@@ -22,7 +22,7 @@ except ImportError:
   import subprocess
 
 from strif import (atomic_output_file, write_string_to_file, DEV_NULL,
-                   move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1,
+                   move_to_backup, movefile, copyfile_atomic, copytree_atomic, rmtree_or_file, file_sha1,
                    make_all_dirs, make_parent_dirs, chmod_native,
                    shell_expand_to_popen,
                    dict_merge)
@@ -97,17 +97,29 @@ def _decompress_dir(archive_path, target_path, force=False):
     ARCHIVER.unarchive(archive_path, temp_dir)
 
 
+def _rsync_dir(source_dir, target_dir):
+  popenargs = ["rsync", "-a", "--delete"]
+  popenargs.append(source_dir.rstrip('/') + '/')
+  popenargs.append(target_dir)
+  log.info("using rsync for faster copy")
+  log.debug("rsync: %r" % popenargs)
+  subprocess.check_call(popenargs)
+
+
 @log_calls
 def _install_from_cache(cache_path, target_path, install_method, force=False, make_backup=False):
   """
   Install a file or directory from cache, either symlinking, hardlinking, or copying.
   """
 
-  def checked_remove():
+  def clear_symlink():
     # Never backup links (they are probably previous installs).
     if os.path.islink(target_path):
       os.unlink(target_path)
-    elif os.path.exists(target_path):
+
+  def checked_remove():
+    clear_symlink()
+    if os.path.exists(target_path):
       if force:
         if make_backup:
           move_to_backup(target_path)
@@ -118,6 +130,7 @@ def _install_from_cache(cache_path, target_path, install_method, force=False, ma
 
   if not os.path.exists(cache_path):
     raise AssertionError("Cached file missing: %r" % cache_path)
+  log.debug("using install method %s", install_method.name)
   if install_method == configs.InstallMethod.symlink:
     checked_remove()
     os.symlink(cache_path, target_path)
@@ -129,6 +142,20 @@ def _install_from_cache(cache_path, target_path, install_method, force=False, ma
   elif install_method == configs.InstallMethod.copy:
     checked_remove()
     copytree_atomic(cache_path, target_path)
+  elif install_method == configs.InstallMethod.fastcopy:
+    if os.path.isdir(cache_path):
+      # Try it and see if rsync is available.
+      try:
+        clear_symlink()
+        _rsync_dir(cache_path, target_path)
+        chmod_native(target_path, "u+w", recursive=True)
+      except OSError as e:
+        log.info("rsync doesn't seem to be here (%s), so will copy instead", e)
+        checked_remove()
+        copytree_atomic(cache_path, target_path)
+    else:
+      checked_remove()
+      copyfile_atomic(cache_path, target_path)
   else:
     raise AssertionError("Invalid install_method: %r" % install_method)
 
@@ -240,9 +267,8 @@ class FileCache(object):
       log.info("installed to cache: %s -> %s", local_path, cached_path)
       _install_from_cache(cached_path, local_path, config.install_method, force=False, make_backup=False)
       log.info("published file: %s", remote_loc)
-    elif os.path.islink(local_path):
-      raise ValueError("Can't publish a symlink (is this already installed?): %r" % local_path)
     elif os.path.exists(local_path):
+      # Not a file, dir, or symlink!
       raise ValueError("Only files or directories can be published: %r" % local_path)
     else:
       raise ValueError("File not found: %r" % local_path)
@@ -254,7 +280,7 @@ class FileCache(object):
     if os.path.exists(cached_path):
       # It's a cached file or a cached directory and we've already unpacked it.
       _install_from_cache(cached_path, config.local_path, config.install_method, force=force)
-      log.info("installed from cache: %s -> %s", config.local_path, cached_path)
+      log.info("installed from cache (%s): %s -> %s", config.install_method.name, config.local_path, cached_path)
     else:
       # First try it as a directory/archive.
       remote_archive_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
@@ -330,7 +356,7 @@ def run_command(command, override_path=None, overrides=None, force=False):
 
   # Commands that require cache and configs.
   else:
-    config_list = configs.load(override_path=override_path)
+    config_list = configs.load(override_path=override_path, overrides=overrides)
     file_cache = FileCache(configs.set_up_cache_dir())
 
     if command == Command.publish:
