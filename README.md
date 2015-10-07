@@ -19,10 +19,10 @@ While npm is amazingly convenient during development, managing the workflow arou
   - Explicit (you just say what version to use in the config file)
   - SHA1 of a file (you say another file that is hashed to get a unique string)
   - Command (you have Instaclone execute an arbitrary command, like `uname`, which means you can have different versions per platform type automatically)
-- Simple, clean internal format.
-  - By default it's in `~/.instaclone`, but you can set the `INSTACLONE_DIR` environment variable to set this directory to something else.
-  - The file cache is just a file tree that you can look at and clean up as you wish.
-  - File permissions are read-only, so that the cache isn't inadvertently modified.
+- Simple, clean internal format for the local cache and the uploaded files.
+  - The files are uploaded under unique paths with the version string included.
+  - Files are cached locallyin `~/.instaclone`, but you can set the `INSTACLONE_DIR` environment variable to set this directory to something else.
+  - The file cache is just a file tree that you can look at and clean up as you wish. (Currently, clean-up is not automated.)
 - Good hygiene: All files, directories, and archives are created atomically, so that interruptions or problems never leave files in a partially complete state.
 - You can install items as symlinks to the read-only cache (usually what you want), or fully copy all the files (in case you want to modify them).
 - In the latter case, the "fastcopy" install method tries to use rsync to speed up repeat installs of large directories that haven't changed a lot in content.
