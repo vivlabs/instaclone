@@ -15,30 +15,45 @@ purging cache: __DIR/.instaclone/cache
 
 # Error invocations.
 run bad_command || expect_error
-usage: main.py [-h] [-v] [--config CONFIG] [-f] [--debug]
-               {publish,install,purge,configs}
+usage: main.py [-h] [-v] [--config CONFIG] [-f] [--copy] [--debug]
+               [--install-method S] [--version-string S] [--local-path S]
+               [--upload-command S] [--remote-prefix S] [--version-hashable S]
+               [--version-command S] [--download-command S] [--remote-path S]
+               {publish,install,purge,configs} [items [items ...]]
 main.py: error: argument command: invalid choice: 'bad_command' (choose from 'publish', 'install', 'purge', 'configs')
 (got expected error: status 2)
 
 run configs
 using config file: ./instaclone.yml
 items:
-- copy_type: symlink
-  download_command: s4cmd get $REMOTE $LOCAL
+- download_command: s4cmd get $REMOTE $LOCAL
+  install_method: symlink
   local_path: test-file1
   remote_path: another-folder
   remote_prefix: s3://__BUCKET/tmp/instaclone-tests
   upload_command: s4cmd put -f $LOCAL $REMOTE
-  version: v11
-- copy_type: hardlink
-  download_command: s4cmd get $REMOTE $LOCAL
+  version_string: v11
+- download_command: s4cmd get $REMOTE $LOCAL
+  install_method: fastcopy
   local_path: test-file2
   remote_path: another-folder
   remote_prefix: s3://__BUCKET/tmp/instaclone-tests
   upload_command: s4cmd put -f $LOCAL $REMOTE
-  version: v22
-- copy_type: symlink
-  download_command: s4cmd get $REMOTE $LOCAL
+  version_string: v22
+- download_command: s4cmd get $REMOTE $LOCAL
+  install_method: symlink
+  local_path: test-dir
+  remote_path: some/remote/folder
+  remote_prefix: s3://__BUCKET/instaclone/tmp-tests
+  upload_command: s4cmd put -f $LOCAL $REMOTE
+  version_command: echo testver
+  version_hashable: test-file2-hashable
+
+run configs test-dir
+using config file: ./instaclone.yml
+items:
+- download_command: s4cmd get $REMOTE $LOCAL
+  install_method: symlink
   local_path: test-dir
   remote_path: some/remote/folder
   remote_prefix: s3://__BUCKET/instaclone/tmp-tests
@@ -117,7 +132,7 @@ ls_portable
 lrwxr-xr-x test-dir@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
 drwxr-xr-x test-dir.bak/  
 lrwxr-xr-x test-file1@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
--r--r--r-- test-file2  
+-rw-r--r-- test-file2  
 -rw-r--r-- test-file2-hashable  
 
 ls_portable test-dir/
@@ -153,9 +168,9 @@ error: Cannot publish symlinks (is path already published?): 'test-file1'
 run install -f
 using config file: ./instaclone.yml
 using cache: __DIR/.instaclone/cache
-installed from cache: test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
-installed from cache: test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
-installed from cache: test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+installed from cache (symlink): test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installed from cache (fastcopy): test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installed from cache (symlink): test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
 
 find $HOME/.instaclone/cache -type f
 __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir/file-a
@@ -194,8 +209,8 @@ error: Target already exists: 'test-file2'
 run install -f
 using config file: ./instaclone.yml
 using cache: __DIR/.instaclone/cache
-installed from cache: test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
-installed from cache: test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+installed from cache (symlink): test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installed from cache (fastcopy): test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
 downloading: s4cmd get s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
 s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz => __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz.partial.__X
 downloaded published archive: s3://__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir.tar.gz
@@ -207,7 +222,7 @@ ls_portable
 lrwxr-xr-x test-dir@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
 drwxr-xr-x test-dir.bak/  
 lrwxr-xr-x test-file1@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
--r--r--r-- test-file2  
+-rw-r--r-- test-file2  
 -rw-r--r-- test-file2-hashable  
 
 ls_portable test-dir/
@@ -216,6 +231,48 @@ ls_portable test-dir/
 dr-xr-xr-x subdir/  
 lrwxr-xr-x symlink-file-a@ -> file-a
 lrwxr-xr-x symlink-symlink-file-a@ -> symlink-file-a
+
+# Try a copy installation.
+rm test-file1 test-file2 test-dir
+rm -rf *.bak
+
+run install --copy
+using config file: ./instaclone.yml
+using cache: __DIR/.instaclone/cache
+installed from cache (fastcopy): test-file1 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file1.$v11$/test-file1
+installed from cache (fastcopy): test-file2 -> __DIR/.instaclone/cache/contents/s3/__BUCKET/tmp/instaclone-tests/another-folder/test-file2.$v22$/test-file2
+using rsync for faster copy
+installed from cache (fastcopy): test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+
+ls_portable
+-rw-r--r-- instaclone.yml  
+drwxr-xr-x test-dir/  
+-rw-r--r-- test-file1  
+-rw-r--r-- test-file2  
+-rw-r--r-- test-file2-hashable  
+
+ls_portable test-dir/
+-rw-r--r-- file-a  
+-rw-r--r-- file-b  
+drwxr-xr-x subdir/  
+lrwxr-xr-x symlink-file-a@ -> file-a
+lrwxr-xr-x symlink-symlink-file-a@ -> symlink-file-a
+
+# Test installation of a single item, as well as command line override.
+run install test-dir --local-path alt-test-dir
+using config file: ./instaclone.yml
+using cache: __DIR/.instaclone/cache
+installed from cache (symlink): alt-test-dir -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+
+ls_portable
+lrwxr-xr-x alt-test-dir@ -> __DIR/.instaclone/cache/contents/s3/__BUCKET/instaclone/tmp-tests/some/remote/folder/test-dir.$7d16c1801be9ca0c00901c354638d9138bf7e353-testver$/test-dir
+-rw-r--r-- instaclone.yml  
+drwxr-xr-x test-dir/  
+-rw-r--r-- test-file1  
+-rw-r--r-- test-file2  
+-rw-r--r-- test-file2-hashable  
+
+diff -r test-dir alt-test-dir
 
 # Try non-default instaclone cache directory.
 export INSTACLONE_DIR=/tmp/instaclone-dir

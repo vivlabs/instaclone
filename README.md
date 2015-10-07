@@ -24,7 +24,8 @@ While npm is amazingly convenient during development, managing the workflow arou
   - The file cache is just a simple file tree that you can look at and clean up as you wish.
   - Directories are archived as .zip files, stored next to the full directory, which is read-only.
 - Good hygiene: All files, directories, and archives are created atomically, so that interruptions or problems never leave files in a partially complete state.
-- You can install items as symlinks (probably what you want), hardlinks (works for files but not directories), or fully copy (slower but still better than a download).
+- You can install items as symlinks to the read-only cache (usually what you want), or fully copy all the files (in case you want to modify them).
+- In the latter case, the "fastcopy" install method tries to use rsync to speed up repeat installs of large directories that haven't changed a lot in content.
 - Some conveneint details regarding handling of symlinks and symlink installs:
    - The file permissions on items in the cache is read-only, so that if you inadvertently try to modify the contents of the cache by following the symlink and changing a file, it will fail.
    - The target of the symlink (in the cache) has the same name as the source, so installed symlinks will play nice paths like `../target/foo` (where `target` is the symlink).
@@ -67,16 +68,14 @@ items:
     remote_path: some/big-resources
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink
-    # This is the version of the file. It can be any string.
-    version: 42a
+    # This is an explicitly set version of the file. It can be any string.
+    version_string: 42a
 
   - local_path: node_modules
     remote_prefix: s3://my-bucket/instaclone-resources
     remote_path: my-app/node-stuff
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink
     # We generate the version string as a hash of the npm-shrinkwrap.json plus the architecture we're on:
     version_hashable: npm-shrinkwrap.json
     version_command: uname
@@ -92,6 +91,16 @@ Once Instaclone is configured, run:
 - `instaclone install`: download configured items (and add to cache)
 - `instaclone configs`: sanity check configuration
 - `instaclone purge`: delete entire cache (leaving resources uploaded)
+
+Run `instaclone --help` for a complete list of flags.
+
+If you have multiple items defined in the `instaclone.yml` file, you can list them as arguments to
+`instaclone publish` or `instaclone install`, e.g. `instaclone install node_modules`.
+
+Finally, note that by default installations are done with a symlink, but this can be customized in
+the config file to copy files. As a shortcut, if you run `instaclone install --copy`, it will use
+the "fastcopy" method to rsync from cache. You should use the `--copy` option if you want to modify
+the files after installation.
 
 ## Why you should Instaclone node_modules
 
@@ -118,9 +127,14 @@ Copy and edit [the example config file](examples/npm-install/instaclone.yml) to 
   instaclone install || (rm -rf ./node_modules && npm install && instaclone publish)
 ```
 
+Note that in normal scenarios, the installed files are symlinked to the read-only cache.
+If you want to `npm install` after doing an `instaclone install`, use
+`instaclone install --copy` instead, and all files will be copied instead.
+
 ## Maturity
 
-Mostly a one-day hack. It works in at least one continuous build environment, but still under development.
+Started as a one-day hack, but it should now be fairly workable.
+It performs well in at least one continuous build environment with directories of about 50K files synced regularly.
 
 ## Caveats
 
@@ -145,4 +159,4 @@ Yes, please! File issues for bugs or general discussion. PRs welcome as well -- 
 
 ## License
 
-Apache.
+Apache 2.

@@ -22,7 +22,7 @@ except ImportError:
   import subprocess
 
 from strif import (atomic_output_file, write_string_to_file, DEV_NULL,
-                   move_to_backup, movefile, copytree_atomic, rmtree_or_file, file_sha1,
+                   move_to_backup, movefile, copyfile_atomic, copytree_atomic, rmtree_or_file, file_sha1,
                    make_all_dirs, make_parent_dirs, chmod_native,
                    shell_expand_to_popen,
                    dict_merge)
@@ -97,17 +97,35 @@ def _decompress_dir(archive_path, target_path, force=False):
     ARCHIVER.unarchive(archive_path, temp_dir)
 
 
+def _rsync_dir(source_dir, target_dir, chmod=None):
+  """
+  Use rsync to clone source_dir to target_dir. Preserves the original owners and permissions.
+  As an optimization, rsync also allows perms to be partly modified as files are synced.
+  """
+  popenargs = ["rsync", "-a", "--delete"]
+  if chmod:
+    popenargs.append("--chmod=%s" % chmod)
+  popenargs.append(source_dir.rstrip('/') + '/')
+  popenargs.append(target_dir)
+  log.info("using rsync for faster copy")
+  log.debug("rsync: %r" % popenargs)
+  subprocess.check_call(popenargs)
+
+
 @log_calls
-def _install_from_cache(cache_path, target_path, copy_type, force=False, make_backup=False):
+def _install_from_cache(cache_path, target_path, install_method, force=False, make_backup=False):
   """
   Install a file or directory from cache, either symlinking, hardlinking, or copying.
   """
 
-  def checked_remove():
+  def clear_symlink():
     # Never backup links (they are probably previous installs).
     if os.path.islink(target_path):
       os.unlink(target_path)
-    elif os.path.exists(target_path):
+
+  def checked_remove():
+    clear_symlink()
+    if os.path.exists(target_path):
       if force:
         if make_backup:
           move_to_backup(target_path)
@@ -118,19 +136,34 @@ def _install_from_cache(cache_path, target_path, copy_type, force=False, make_ba
 
   if not os.path.exists(cache_path):
     raise AssertionError("Cached file missing: %r" % cache_path)
-  if copy_type == configs.CopyType.symlink:
+  log.debug("using install method %s", install_method.name)
+  if install_method == configs.InstallMethod.symlink:
     checked_remove()
     os.symlink(cache_path, target_path)
-  elif copy_type == configs.CopyType.hardlink:
+  elif install_method == configs.InstallMethod.hardlink:
     if os.path.isdir(cache_path):
       raise AppError("Can't hardlink a directory: %r" % cache_path)
     checked_remove()
     os.link(cache_path, target_path)
-  elif copy_type == configs.CopyType.copy:
+  elif install_method == configs.InstallMethod.copy:
     checked_remove()
     copytree_atomic(cache_path, target_path)
+  elif install_method == configs.InstallMethod.fastcopy:
+    if os.path.isdir(cache_path):
+      # Try it and see if rsync is available.
+      try:
+        clear_symlink()
+        # Ensure we add write perms since the cache has read-only perms. Other perms will be preserved.
+        _rsync_dir(cache_path, target_path, chmod="u+w")
+      except OSError as e:
+        log.info("rsync doesn't seem to be here (%s), so will copy instead", e)
+        checked_remove()
+        copytree_atomic(cache_path, target_path)
+    else:
+      checked_remove()
+      copyfile_atomic(cache_path, target_path)
   else:
-    raise AssertionError("Invalid copy_type: %r" % copy_type)
+    raise AssertionError("Invalid install_method: %r" % install_method)
 
 
 VERSION_SEP = ".$"
@@ -173,8 +206,8 @@ class FileCache(object):
   @staticmethod
   def versioned_path(config, version, suffix=""):
     return os.path.join(config.remote_path,
-                        "%s%s%s%s" % (config.local_path, VERSION_SEP, version, VERSION_END),
-                        "%s%s" % (os.path.basename(config.local_path), suffix))
+                        "%s%s%s%s" % (config.name, VERSION_SEP, version, VERSION_END),
+                        "%s%s" % (os.path.basename(config.name), suffix))
 
   @staticmethod
   def pathify_remote_loc(remote_loc):
@@ -227,7 +260,7 @@ class FileCache(object):
       os.unlink(cached_archive)
       # Leave the previous version of the tree as a backup.
       log.info("installed to cache: %s -> %s", local_path, cached_path)
-      _install_from_cache(cached_path, local_path, config.copy_type, force=True, make_backup=True)
+      _install_from_cache(cached_path, local_path, config.install_method, force=True, make_backup=True)
       log.info("published archive: %s", remote_loc)
     elif os.path.isfile(local_path):
       remote_loc = self.remote_loc(config, version)
@@ -238,11 +271,10 @@ class FileCache(object):
       movefile(local_path, cached_path, make_parents=True)
       _upload_file(config.upload_command, cached_path, remote_loc)
       log.info("installed to cache: %s -> %s", local_path, cached_path)
-      _install_from_cache(cached_path, local_path, config.copy_type, force=False, make_backup=False)
+      _install_from_cache(cached_path, local_path, config.install_method, force=False, make_backup=False)
       log.info("published file: %s", remote_loc)
-    elif os.path.islink(local_path):
-      raise ValueError("Can't publish a symlink (is this already installed?): %r" % local_path)
     elif os.path.exists(local_path):
+      # Not a file, dir, or symlink!
       raise ValueError("Only files or directories can be published: %r" % local_path)
     else:
       raise ValueError("File not found: %r" % local_path)
@@ -253,8 +285,8 @@ class FileCache(object):
     cached_path = self.cache_path(config, version)
     if os.path.exists(cached_path):
       # It's a cached file or a cached directory and we've already unpacked it.
-      _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
-      log.info("installed from cache: %s -> %s", config.local_path, cached_path)
+      _install_from_cache(cached_path, config.local_path, config.install_method, force=force)
+      log.info("installed from cache (%s): %s -> %s", config.install_method.name, config.local_path, cached_path)
     else:
       # First try it as a directory/archive.
       remote_archive_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
@@ -280,7 +312,7 @@ class FileCache(object):
         log.info("installed file: %s -> %s", config.local_path, cached_path)
 
       _make_readonly(cached_path)
-      _install_from_cache(cached_path, config.local_path, config.copy_type, force=force)
+      _install_from_cache(cached_path, config.local_path, config.install_method, force=force)
 
   @log_calls
   def purge(self):
@@ -294,8 +326,8 @@ def version_for(config):
   The version for an item is either the explicit version specified by the user, or the SHA1 hash of hashable file.
   """
   bits = []
-  if config.version:
-    bits.append(str(config.version))
+  if config.version_string:
+    bits.append(str(config.version_string))
   if config.version_hashable:
     log.debug("computing sha1 of: %s", config.version_hashable)
     bits.append(file_sha1(config.version_hashable))
@@ -303,7 +335,7 @@ def version_for(config):
     log.debug("version command: %s", config.version_command)
     popenargs = shell_expand_to_popen(config.version_command, os.environ)
     output = subprocess.check_output(popenargs, stderr=SHELL_OUTPUT, stdin=DEV_NULL).strip()
-    if not configs.CONFIG_VERSION_RE.match(output):
+    if not configs._CONFIG_VERSION_RE.match(output):
       raise configs.ConfigError("Invalid version output from version command: %r" % output)
     bits.append(output)
 
@@ -317,10 +349,24 @@ Command = Enum("Command", "publish install purge configs")
 _command_list = [c.name for c in Command]
 
 
-def run_command(command, override_path=None, force=False):
+def select_configs(config_list, items):
+  """Select configs by name, or all configs if none specified."""
+  if items:
+    log.debug("selecting configs for items: %s", items)
+    new_config_list = []
+    for item in items:
+      matches = filter(lambda config: config.name == item, config_list)
+      if len(matches) < 1:
+        raise ValueError("Could not find config for item: %s" % item)
+      new_config_list.append(matches[0])
+    config_list = new_config_list
+  return config_list
+
+
+def run_command(command, override_path=None, overrides=None, force=False, items=None):
   # Nondestructive commands that don't require cache.
   if command == Command.configs:
-    config_list = configs.load(override_path=override_path)
+    config_list = select_configs(configs.load(override_path=override_path, overrides=overrides), items)
     configs.print_configs(config_list)
 
   # Destructive commands that require cache but not configs.
@@ -330,7 +376,8 @@ def run_command(command, override_path=None, force=False):
 
   # Commands that require cache and configs.
   else:
-    config_list = configs.load(override_path=override_path)
+    config_list = select_configs(configs.load(override_path=override_path, overrides=overrides), items)
+
     file_cache = FileCache(configs.set_up_cache_dir())
 
     if command == Command.publish:
@@ -348,15 +395,14 @@ def run_command(command, override_path=None, force=False):
 # - consider new feature:
 #   failover_command that is executed if install fails,
 #   and a flag failover_publish indicating whether to publish
-# - merge command-line args and config file values?
 # - --no-cache option that just downloads
-# - think how to auto-purge all but one resource per branch (say) (and generalize to env variable)
 # - "clean" command that deletes local resources (requiring -f if not in cache)
 # - "unpublish" command that deletes a remote resource (and purges from cache)
-# - command to unpublish all but most recent n versions of a resource
+# - command to unpublish all but most recent n versions of a resource?
 # - support compressing files as well as archives
 # - consider a pax-based hardlink tree copy option (since pax is cross platform, unlike cp's options)
 # - init command to generate a config
 # - "--offline" mode for install (i.e. will fail if it has to download)
 # - test out more custom transport commands (s3cmd, awscli, wget, etc.)
-# - for the custom transport like curl, figure out handling of shell redirects (or just require)
+# - for the custom transport like curl, figure out handling of shell redirects?
+#   (perhaps better just to require a bash wrapper)

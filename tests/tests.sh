@@ -50,6 +50,8 @@ run bad_command || expect_error
 
 run configs
 
+run configs test-dir
+
 # Check contents before.
 ls_portable
 
@@ -90,6 +92,23 @@ run install -f
 ls_portable
 
 ls_portable test-dir/
+
+# Try a copy installation.
+rm test-file1 test-file2 test-dir
+rm -rf *.bak
+
+run install --copy
+
+ls_portable
+
+ls_portable test-dir/
+
+# Test installation of a single item, as well as command line override.
+run install test-dir --local-path alt-test-dir
+
+ls_portable
+
+diff -r test-dir alt-test-dir
 
 # Try non-default instaclone cache directory.
 export INSTACLONE_DIR=/tmp/instaclone-dir

@@ -3,18 +3,17 @@ items:
   - local_path: test-file1
     remote_path: another-folder
     remote_prefix: s3://$TEST_BUCKET/tmp/instaclone-tests
-    version: v11
+    version_string: v11
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink
 
   - local_path: test-file2
     remote_path: another-folder
     remote_prefix: s3://$TEST_BUCKET/tmp/instaclone-tests
-    version: v22
+    version_string: v22
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: hardlink
+    install_method: fastcopy
 
   - local_path: test-dir
     remote_path: some/remote/folder
@@ -23,4 +22,3 @@ items:
     version_command: echo testver
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    copy_type: symlink

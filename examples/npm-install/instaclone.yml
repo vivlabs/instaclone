@@ -13,8 +13,6 @@ items:
     # These commands are called to upload and download the archived directory:
     upload_command: s4cmd put -f $LOCAL $REMOTE
     download_command: s4cmd get $REMOTE $LOCAL
-    # We install via symlink so it's fast and evident when you're using a cached node_modules directory:
-    copy_type: symlink
     # The "version" is a hash of the shrinkwrap file followed by the platform we're on
     # (e.g. Linux or Darwin, which we determine by calling "uname").
     version_hashable: npm-shrinkwrap.json

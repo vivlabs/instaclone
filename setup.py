@@ -9,7 +9,7 @@ setup(
   packages=find_packages(),
   author="Joshua Levy",
   license="Apache 2",
-  url="https://github.com/jlevy/instaclone",
+  url="https://github.com/vivlabs/instaclone",
   install_requires=["strif>=0.1.2", "enum34>=1.0.4", "PyYAML>=3.11", "subprocess32>=3.2.6", "functools32>=3.2.3"],
   description=main.DESCRIPTION,
   long_description=main.LONG_DESCRIPTION,
