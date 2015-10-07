@@ -92,6 +92,16 @@ Once Instaclone is configured, run:
 - `instaclone configs`: sanity check configuration
 - `instaclone purge`: delete entire cache (leaving resources uploaded)
 
+Run `instaclone --help` for a complete list of flags.
+
+If you have multiple items defined in the `instaclone.yml` file, you can list them as arguments to
+`instaclone publish` or `instaclone install`, e.g. `instaclone install node_modules`.
+
+Finally, note that by default installations are done with a symlink, but this can be customized in
+the config file to copy files. As a shortcut, if you run `instaclone install --copy`, it will use
+the "fastcopy" method to rsync from cache. You should use the `--copy` option if you want to modify
+the files after installation.
+
 ## Why you should Instaclone node_modules
 
 This use case deserves a little more explanation.
@@ -117,10 +127,14 @@ Copy and edit [the example config file](examples/npm-install/instaclone.yml) to 
   instaclone install || (rm -rf ./node_modules && npm install && instaclone publish)
 ```
 
+Note that in normal scenarios, the installed files are symlinked to the read-only cache.
+If you want to `npm install` after doing an `instaclone install`, use
+`instaclone install --copy` instead, and all files will be copied instead.
+
 ## Maturity
 
-Started as a one-day hack, but it's been improved a bit.
-It works well in at least one continuous build environment with directories of about 50K files synced regularly.
+Started as a one-day hack, but it should now be fairly workable.
+It performs well in at least one continuous build environment with directories of about 50K files synced regularly.
 
 ## Caveats
 
@@ -145,4 +159,4 @@ Yes, please! File issues for bugs or general discussion. PRs welcome as well -- 
 
 ## License
 
-Apache.
+Apache 2.
