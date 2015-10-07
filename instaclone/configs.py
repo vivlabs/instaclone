@@ -31,7 +31,7 @@ CONFIG_DESCRIPTIONS = {
   "local_path": "the local target path to sync to, relative to current dir",
   "remote_path": "remote path (in backing store such as S3) to sync to",
   "remote_prefix": "remote path prefix (such as s3://my-bucket/instaclone) to sync to",
-  "install_method": "the way to install files, either 'symlink' or 'copy'",
+  "install_method": "the way to install files (symlink, copy, fastcopy, hardlink)",
   "upload_command": "shell command template to upload file",
   "download_command": "shell command template to download file",
   "version_string": "explicit version string to use",

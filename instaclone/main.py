@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 """
+Instaclone is usually run from a directory where a instaclone.{yml,json}
+settings file resides. It will then install to and publish from that
+directory, based on settings in that file.
+
+Settings may be overridden with corresponding command-line args.
+
+The install method determines how items are installed from cache:
+- symlink: Symlink to read-only cache (the default)
+- copy: A slow, full copy of the file or directory
+- fastcopy: A faster copy using rsync (preferred over copy)
+- hardlink: A hard link (files only)
+
 For further documentation, see: https://github.com/vivlabs/instaclone
 """
 
@@ -11,7 +23,7 @@ import sys
 
 NAME = "instaclone"
 VERSION = "0.3.0"
-DESCRIPTION = "instaclone: Fast, cached installations of versioned files"
+DESCRIPTION = "instaclone: Fast, cached file installation"
 LONG_DESCRIPTION = __doc__
 
 LOG_STREAM = sys.stderr
@@ -36,9 +48,8 @@ def main():
   import instaclone
   import configs
 
-  config_docs = "Put configuration settings into an instaclone.{yml,json} file. Setting file keys:\n\n%s\n%s" % (
-    "\n".join(["  %s: %s" % (k, v) for (k, v) in configs.CONFIG_DESCRIPTIONS.iteritems()]),
-    "\nSettings may be overridden with corresponding command-line args.\n")
+  config_docs = "Setting file keys:\n\n%s\n" % (
+    "\n".join(["  %s: %s" % (k, v) for (k, v) in configs.CONFIG_DESCRIPTIONS.iteritems()]))
 
   parser = argparse.ArgumentParser(description=DESCRIPTION, version=VERSION, epilog="\n" + config_docs + __doc__,
                                    formatter_class=argparse.RawTextHelpFormatter)
