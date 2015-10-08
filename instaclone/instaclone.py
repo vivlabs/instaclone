@@ -412,12 +412,12 @@ def run_command(command, override_path=None, overrides=None, force=False, items=
       raise AssertionError("unknown command: " + command)
 
 # TODO:
+# - "clean" command that deletes local resources (requiring -f if not in cache)
+# - "unpublish" command that deletes a remote resource (and purges from cache)
+# - --no-cache option that just downloads
 # - consider new feature:
 #   failover_command that is executed if install fails,
 #   and a flag failover_publish indicating whether to publish
-# - --no-cache option that just downloads
-# - "clean" command that deletes local resources (requiring -f if not in cache)
-# - "unpublish" command that deletes a remote resource (and purges from cache)
 # - command to unpublish all but most recent n versions of a resource?
 # - support compressing files as well as archives
 # - consider a pax-based hardlink tree copy option (since pax is cross platform, unlike cp's options)
