@@ -2,46 +2,68 @@
 
 [![Boink](images/clone-140.jpg)](http://www.gocomics.com/calvinandhobbes/1990/01/10)
 
-Instaclone is a simple, configurable command-line tool to publish and later install snapshots of files or directories in S3 (or another store). It keeps a cache of downloaded snapshots so switching between previously cached snapshots is instant -- just a symlink to the local cache.
+Instaclone is a simple, configurable command-line tool to publish and later install snapshots of files or directories in S3 (or another store).
+It keeps a local cache of downloaded snapshots so switching between previously cached snapshots is almost instant -- just a symlink or local copy from the cache.
 
-It's good for files you want to version but not check them into Git, due to size, sensitivity, platform dependence, etc. You can git-ignore the original files, publish them with Instaclone, and instead check in the Instaclone configuration file that references them.
+It works nicely when you might want to save things in Git, but can't, due to files or directories being large or sensitive, or because you have multiple variations of files for one Git revision (for example, Mac and Linux).
+You can git-ignore the original files, publish them with Instaclone, and instead check in the Instaclone configuration file that references them.
+
+Note that if all you want is to do is put big files in Git, [LFS](https://git-lfs.github.com/) may be what you want.
+Instaclone is more flexible about backend storage and versioning schemes, and offers a local cache.
+
+## Basic idea
+
+Every item (a file or directory) can be published as an immutable snapshot.
+A snapshot has a local path name, a published location (such as an S3 prefix), and a _version string_.
+You can assign a version string yourself and reference it directly, or -- and this is where it's more useful -- assign it implicitly from other sources, such as the hash of another file, the platform, or the output of an arbitrary command.
+The snapshot is then published with that version string.
+
+Another client can then install that snapshot whenever it requires the same version of the item.
+Installing the first time on a new client requires a download.
+Subsequent installs use the local cache.
 
 ## Exact, cached node_modules snapshots
 
 This tool isn't only for use with Node, but this is a good motivating use case.
 
-While npm is amazingly convenient during development, managing the workflow around `npm install` can be a pain point in terms of speed, reliability, and reproducibility as you scale out builds and in production. If you use Instaclone to publish after committing your npm shrinkwrap file, you can switch back and forth between Git branches and run `instaclone install` instantly instead of `npm install` and waiting 3 minutes. Your colleagues can do this too -- after you publish, they can run `instaclone install` and get a byte-for-byte exact copy of your `node_modules` cached on their machines. Finally, your CI builds will speed up most of the time -- possibly by a lot! [See below](#why-you-should-instaclone-node_modules) for more info on this.
+If you `instaclone publish` after you `npm install` and `npm shrinkwrap`, you can switch back and forth between Git branches and run `instaclone install` instantly instead of `npm install` and waiting around minutes for npm to download, copy dependencies, etc.
+Your colleagues can do this too -- after you publish, they can run `instaclone install` and get a byte-for-byte exact copy of your `node_modules` on their machines, more quickly and reliably than if they had done the `npm install` themselves.
+Finally, your CI builds will speed up most of the time -- possibly by a lot!
+
+[See below](#why-you-should-instaclone-node_modules) for more info on this.
 
 ## Features
 
-- Upload/download is via configurable shell commands, using whatever backing storage system desired, so you don't have to worry about configuring credentials just for this tool, and can publish to S3 or elsewhere. I'd recommend using [`s4cmd`](https://github.com/bloomreach/s4cmd) for high-performance multi-connection access to S3.
-- Snapshots have version strings, which can be:
-  - Explicit (you just say what version to use in the config file)
-  - SHA1 of a file (you say another file that is hashed to get a unique string)
-  - Command (you have Instaclone execute an arbitrary command, like `uname`, which means you can have different versions per platform type automatically)
-- Simple, clean internal format for the local cache and the uploaded files.
-  - The files are uploaded under unique paths with the version string included.
+- **Scales to larged directories.** Works with large directories containing many (100,000+) files. Uses rsync to make file copying and deletion very fast.
+- **Configurable storage.** Upload/download is via configurable shell commands, using whatever backing storage system desired, so you don't have to worry about configuring credentials just for this tool, and can publish to S3 or elsewhere.
+- **High bandwidth upload/download.** While not a feature of Instaclone, I recommend using [`s4cmd`](https://github.com/bloomreach/s4cmd) for high-performance multi-connection access to S3.
+- **Configurable versioning.** Version strings can be explicit or specified indirectly:
+  - Explicit (you just say what version to use in the config file);
+  - SHA1 of a file (you say another file that is hashed to get a unique string); or
+  - Command (you have Instaclone execute an arbitrary command, like `uname`, which means you automatically publish different versions per platform)
+- **Good hygiene.** All files, directories, and archives are created atomically, so that interruptions exceptions never leave files in a partially complete state.
+- **Read-only or writeable installs.** You can install items as symlinks to the read-only cache (usually what you want), or fully copy all the files (in case you want to modify them). In the latter case, we use rsync for faster copying and to speed up repeat installs of large directories that haven't changed a lot in content.
+- **Simple internals.** The format for the cache and published storage is dead simple.
+  - The files are uploaded under unique paths with the version string as a suffix.
   - Files are cached locallyin `~/.instaclone`, but you can set the `INSTACLONE_DIR` environment variable to set this directory to something else.
-  - The file cache is just a file tree that you can look at and clean up as you wish. (Currently, clean-up is not automated.)
-- Good hygiene: All files, directories, and archives are created atomically, so that interruptions or problems never leave files in a partially complete state.
-- You can install items as symlinks to the read-only cache (usually what you want), or fully copy all the files (in case you want to modify them).
-- In the latter case, the "fastcopy" install method tries to use rsync to speed up repeat installs of large directories that haven't changed a lot in content.
-- Some conveneint details regarding handling of symlinks and symlink installs:
+  - The file cache just merges the published paths, so is just a file tree that you can look at.  (Currently, clean-up is not automated, but you can delete it any time.)
+- **Symlink details.** Symlink installs and directories containing symlinks work pretty well:
    - The file permissions on items in the cache is read-only, so that if you inadvertently try to modify the contents of the cache by following the symlink and changing a file, it will fail.
    - The target of the symlink (in the cache) has the same name as the source, so installed symlinks will play nice paths like `../target/foo` (where `target` is the symlink).
    - Internally within an archive, relative symlinks are preserved. But instaclone is smart enough to check for and abort if it sees symlinks to absolute paths or to relative paths outside the source directory (which would usually be a mistake).
 
 ## Installation
 
-Requires Python 2.7+. Then (with sudo if desired):
+Requires Python 2.7+ on Mac or Linux. (Windows untested and probably broken.)
+Then (with sudo if desired):
 
 ```
 pip install instaclone
 ```
 
-It also requires `s3cmd`, `aws`, `s4cmd`,
+It requires `rsync` for faster file operations, as well as `s3cmd`, `aws`, `s4cmd`,
 or any similar tool you put into your `upload_command` and `download_command` settings.
-These must be in the path.
+These must be in your path.
 
 ## Configuration
 
@@ -86,23 +108,24 @@ Once Instaclone is configured, run:
 - `instaclone publish`: upload configured items (and add to cache)
 - `instaclone install`: download configured items (and add to cache)
 - `instaclone configs`: sanity check configuration
-- `instaclone purge`: delete entire cache (leaving resources uploaded)
+- `instaclone purge`: delete entire cache (published resources are never deleted)
 
-Run `instaclone --help` for a complete list of flags.
+Run `instaclone --help` for a complete list of flags and settings.
 
 If you have multiple items defined in the `instaclone.yml` file, you can list them as arguments to
 `instaclone publish` or `instaclone install`, e.g. `instaclone install node_modules`.
 
-Finally, note that by default installations are done with a symlink,
+Finally, note that by default, installations are done with a symlink,
 but this can be customized in the config file to copy files.
-As a shortcut, if you run `instaclone install --copy`, it will a fast rsync-based copy of the files.
+As a shortcut, if you run `instaclone install --copy`,
+it will perform a fast rsync-based copy of the files.
 You should use the `--copy` option if you plan to modify the files after installation.
 
 ## Why you should Instaclone node_modules
 
 This use case deserves a little more explanation.
 
-Having fast and reproducible runs of `npm install` is a challenge for developers, CI systems, and deployment:
+While npm is amazingly convenient during development, managing the workflow around `npm install` can be a pain point in terms of speed, reliability, and reproducibility as you scale out builds and in production:
 
 - As [we](http://blog.nodejs.org/2012/02/27/managing-node-js-dependencies-with-shrinkwrap/)
 [all](http://javascript.tutorialhorizon.com/2015/03/21/what-is-npm-shrinkwrap-and-when-is-it-needed/)
@@ -118,9 +141,9 @@ A simpler and more scalable solution to this is to archive the entire `node_modu
 Instaclone does all this for you. If you already have an `npm shrinkwrap` workflow, it's pretty easy. It lets you specify where to store your `node_modules` in S3, and version that entire tree by the SHA1 hash of the `npm-shrinkwrap.json` file togetehr with the architecture. You can then work on multiple branches and swap them in and out -- a bit like how `nvm` caches Node installations.
 
 Copy and edit [the example config file](examples/npm-install/instaclone.yml) to try it. On your CI system, you might want to have some sort of automation that tries to reuse pre-published versions, but if not, publishes automatically:
-```
-  echo "Running instaclone install and publish..."
-  instaclone install || (rm -rf ./node_modules && npm install && instaclone publish)
+```sh
+    echo "Running instaclone install or publish..."
+    instaclone install || (rm -rf ./node_modules && npm install && instaclone publish)
 ```
 
 Note that in normal scenarios, the installed files are symlinked to the read-only cache.
@@ -129,13 +152,13 @@ If you want to `npm install` after doing an `instaclone install`, use
 
 ## Maturity
 
-Started as a one-day hack, but it should now be fairly workable.
-It performs well in at least one continuous build environment with directories of about 50K files synced regularly.
+Mostly a one-day hack, but it should now be fairly workable.
+It performs well in at least one continuous build environment with quite large directories synced regularly on Mac and Linux.
 
 ## Caveats
 
-- You have to clean up the cache manually by running `instaclone purge` or deleting files in `~/.instaclone/cache` -- there's no automated process for this yet, so if you publish a lot it will begin to accumulate.
 - There is no `unpublish` functionality -- if you publish something by mistake, go find it in S3 (or wherever you put it) and delete it.
+- You have to clean up the cache manually by running `instaclone purge` or deleting files in `~/.instaclone/cache` -- there's no automated process for this yet, so if you publish a lot it will begin to accumulate.
 - If you are obsessed with Node, you'll somehow have to accept that this is written in Python.
 - See [issues](issues) and [the TODOs list](instaclone/instaclone.py) for further work.
 
