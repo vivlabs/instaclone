@@ -25,7 +25,7 @@ While npm is amazingly convenient during development, managing the workflow arou
   - The file cache is just a file tree that you can look at and clean up as you wish. (Currently, clean-up is not automated.)
 - Good hygiene: All files, directories, and archives are created atomically, so that interruptions or problems never leave files in a partially complete state.
 - You can install items as symlinks to the read-only cache (usually what you want), or fully copy all the files (in case you want to modify them).
-- In the latter case, the "fastcopy" install method tries to use rsync to speed up repeat installs of large directories that haven't changed a lot in content.
+- In the latter case, we use rsync for faster copying and to speed up repeat installs of large directories that haven't changed a lot in content.
 - Some conveneint details regarding handling of symlinks and symlink installs:
    - The file permissions on items in the cache is read-only, so that if you inadvertently try to modify the contents of the cache by following the symlink and changing a file, it will fail.
    - The target of the symlink (in the cache) has the same name as the source, so installed symlinks will play nice paths like `../target/foo` (where `target` is the symlink).
@@ -39,7 +39,7 @@ Requires Python 2.7+. Then (with sudo if desired):
 pip install instaclone
 ```
 
-It also requires `s3cmd`, `aws`, `s4cmd`,
+It requires `rsync` for faster file operations, as well as `s3cmd`, `aws`, `s4cmd`,
 or any similar tool you put into your `upload_command` and `download_command` settings.
 These must be in the path.
 
@@ -88,14 +88,15 @@ Once Instaclone is configured, run:
 - `instaclone configs`: sanity check configuration
 - `instaclone purge`: delete entire cache (leaving resources uploaded)
 
-Run `instaclone --help` for a complete list of flags.
+Run `instaclone --help` for a complete list of flags and settings.
 
 If you have multiple items defined in the `instaclone.yml` file, you can list them as arguments to
 `instaclone publish` or `instaclone install`, e.g. `instaclone install node_modules`.
 
-Finally, note that by default installations are done with a symlink,
+Finally, note that by default, installations are done with a symlink,
 but this can be customized in the config file to copy files.
-As a shortcut, if you run `instaclone install --copy`, it will a fast rsync-based copy of the files.
+As a shortcut, if you run `instaclone install --copy`,
+it will perform a fast rsync-based copy of the files.
 You should use the `--copy` option if you plan to modify the files after installation.
 
 ## Why you should Instaclone node_modules

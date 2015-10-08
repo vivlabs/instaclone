@@ -21,8 +21,8 @@ try:
 except ImportError:
   import subprocess
 
-from strif import (atomic_output_file, write_string_to_file, DEV_NULL,
-                   move_to_backup, movefile, copyfile_atomic, copytree_atomic, rmtree_or_file, file_sha1,
+from strif import (atomic_output_file, temp_output_dir, write_string_to_file, DEV_NULL,
+                   move_to_backup, movefile, copyfile_atomic, copytree_atomic, file_sha1,
                    make_all_dirs, make_parent_dirs, chmod_native,
                    shell_expand_to_popen,
                    dict_merge)
@@ -37,6 +37,8 @@ SHELL_OUTPUT = sys.stderr
 # We only support one archive format currently.
 ARCHIVER = archives.TarGzArchiver
 
+# Suffix to use when making backups.
+BACKUP_SUFFIX = ".bak"
 
 class AppError(RuntimeError):
   pass
@@ -89,7 +91,7 @@ def _decompress_dir(archive_path, target_path, force=False):
   if os.path.exists(target_path):
     if force:
       log.info("deleting previous dir: %s", target_path)
-      rmtree_or_file(target_path)
+      _rmtree_fast(target_path)
     else:
       raise AppError("Target already exists: %r" % target_path)
   with atomic_output_file(target_path) as temp_dir:
@@ -112,6 +114,23 @@ def _rsync_dir(source_dir, target_dir, chmod=None):
   subprocess.check_call(popenargs)
 
 
+def _rmtree_fast(path, ignore_errors=False):
+  """
+  Delete a file or directory. Uses rsync to delete directories, which is among the fastest
+  ways possible to delete large numbers of files. Note it can remove some read-only files.
+  See http://www.slashroot.in/which-is-the-fastest-method-to-delete-files-in-linux
+  """
+  if ignore_errors and not os.path.exists(path):
+    return
+  if os.path.isdir(path) and not os.path.islink(path):
+    with temp_output_dir("empty.", always_clean=True) as empty_dir:
+      popenargs = ["rsync", "-r", "--delete", empty_dir + '/', path]
+      subprocess.check_call(popenargs)
+    os.rmdir(path)
+  else:
+    os.unlink(path)
+
+
 @log_calls
 def _install_from_cache(cache_path, target_path, install_method, force=False, make_backup=False):
   """
@@ -128,9 +147,10 @@ def _install_from_cache(cache_path, target_path, install_method, force=False, ma
     if os.path.exists(target_path):
       if force:
         if make_backup:
-          move_to_backup(target_path)
+          _rmtree_fast(target_path + BACKUP_SUFFIX, ignore_errors=True)
+          move_to_backup(target_path, backup_suffix=BACKUP_SUFFIX)
         else:
-          rmtree_or_file(target_path)
+          _rmtree_fast(target_path)
       else:
         raise AppError("Target already exists: %r" % target_path)
 
@@ -318,7 +338,7 @@ class FileCache(object):
   def purge(self):
     log.info("purging cache: %s", self.root_path)
     _make_writable(self.root_path, silent=True)
-    shutil.rmtree(self.root_path, ignore_errors=True)
+    _rmtree_fast(self.root_path)
 
 
 def version_for(config):
