@@ -34,7 +34,7 @@ Finally, your CI builds will speed up most of the time -- possibly by a lot!
 
 ## Features
 
-- **Scales to larged directories.** Works with large directories containing many (100,000+) files. Uses rsync to make file copying and deletion very fast.
+- **Scales to large directories.** Works with large directories containing many (100,000+) files. Uses rsync to make file copying and deletion very fast.
 - **Configurable storage.** Upload/download is via configurable shell commands, using whatever backing storage system desired, so you don't have to worry about configuring credentials just for this tool, and can publish to S3 or elsewhere.
 - **High bandwidth upload/download.** While not a feature of Instaclone, I recommend using [`s4cmd`](https://github.com/bloomreach/s4cmd) for high-performance multi-connection access to S3.
 - **Configurable versioning.** Version strings can be explicit or specified indirectly:
@@ -46,7 +46,7 @@ Finally, your CI builds will speed up most of the time -- possibly by a lot!
 - **Simple internals.** The format for the cache and published storage is dead simple.
   - The files are uploaded under unique paths with the version string as a suffix.
   - Files are cached locallyin `~/.instaclone`, but you can set the `INSTACLONE_DIR` environment variable to set this directory to something else.
-  - The file cache just merges the published paths, so is just a file tree that you can look at.  (Currently, clean-up is not automated, but you can delete it any time.)
+  - The file cache just merges the published paths, so is just a file tree that you can look at. (Currently, clean-up is not automated, but you can delete it any time.)
 - **Symlink details.** Symlink installs and directories containing symlinks work pretty well:
    - The file permissions on items in the cache is read-only, so that if you inadvertently try to modify the contents of the cache by following the symlink and changing a file, it will fail.
    - The target of the symlink (in the cache) has the same name as the source, so installed symlinks will play nice paths like `../target/foo` (where `target` is the symlink).
