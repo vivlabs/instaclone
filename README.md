@@ -109,7 +109,7 @@ Once Instaclone is configured, run:
 - `instaclone install`: download configured items (and add to cache)
 - `instaclone configs`: sanity check configuration
 - `instaclone purge`: delete entire cache (published resources are never deleted)
-- `instaclone remote`: prints the current remote location to standard output
+- `instaclone remote`: prints the current remote location to standard output (good for sanity checking config or version string)
 
 Run `instaclone --help` for a complete list of flags and settings.
 
