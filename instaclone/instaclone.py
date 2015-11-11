@@ -365,7 +365,7 @@ def version_for(config):
 #
 # ---- Command line ----
 
-Command = Enum("Command", "publish install purge configs")
+Command = Enum("Command", "publish install purge configs remote")
 _command_list = [c.name for c in Command]
 
 
@@ -407,6 +407,11 @@ def run_command(command, override_path=None, overrides=None, force=False, items=
     elif command == Command.install:
       for config in config_list:
         file_cache.install(config, version_for(config), force=force)
+
+    elif command == Command.remote:
+      for config in config_list:
+        loc = file_cache.remote_loc(config, version_for(config))
+        print(loc)
 
     else:
       raise AssertionError("unknown command: " + command)
