@@ -19,7 +19,7 @@ from log_calls import log_calls
 
 _NAME_FIELD = "name"
 _required_fields = "local_path remote_path remote_prefix install_method upload_command download_command"
-_other_fields = "version_string version_hashable version_command"
+_other_fields = "make_backup version_string version_hashable version_command"
 
 ConfigBase = namedtuple("ConfigBase", _NAME_FIELD + " " + _other_fields + " " + _required_fields)
 
@@ -28,15 +28,16 @@ CONFIG_DEFAULTS = {
   "install_method": "symlink"
 }
 CONFIG_DESCRIPTIONS = {
+  "download_command": "shell command template to download file",
+  "install_method": "the way to install files (symlink, copy, fastcopy, hardlink)",
   "local_path": "the local target path to sync to, relative to current dir",
+  "make_backup": "make a backup (applies only to publish command)",
   "remote_path": "remote path (in backing store such as S3) to sync to",
   "remote_prefix": "remote path prefix (such as s3://my-bucket/instaclone) to sync to",
-  "install_method": "the way to install files (symlink, copy, fastcopy, hardlink)",
   "upload_command": "shell command template to upload file",
-  "download_command": "shell command template to download file",
-  "version_string": "explicit version string to use",
-  "version_hashable": "a file path that should be SHA1 hashed to get a version string",
   "version_command": "a shell command that should be run to get a version string",
+  "version_hashable": "a file path that should be SHA1 hashed to get a version string",
+  "version_string": "explicit version string to use",
 }
 # For now, allow anything to be overridden.
 CONFIG_OVERRIDABLE = CONFIG_DESCRIPTIONS.keys()
@@ -175,6 +176,12 @@ def _parse_and_validate(raw_config_list):
       raw["install_method"] = InstallMethod[raw["install_method"]]
     except KeyError:
       raise ConfigError("invalid copy type: %s" % raw["install_method"])
+
+    # Parse booleans.
+    try:
+      raw["make_backup"] = raw["make_backup"]
+    except KeyError:
+      raise ConfigError("invalid copy type: %s" % raw["make_backup"])
 
     items.append(Config(**raw))
 
