@@ -10,7 +10,6 @@ import logging as log
 import re
 import sys
 import os
-import shutil
 
 from enum import Enum  # enum34
 
@@ -21,8 +20,9 @@ try:
 except ImportError:
   import subprocess
 
-from strif import (atomic_output_file, temp_output_dir, write_string_to_file, DEV_NULL,
-                   move_to_backup, movefile, copyfile_atomic, copytree_atomic, file_sha1,
+from strif import (atomic_output_file, temp_output_dir, write_string_to_file,
+                   DEV_NULL, move_to_backup, movefile,
+                   copyfile_atomic, copytree_atomic, file_sha1,
                    make_all_dirs, make_parent_dirs, chmod_native,
                    shell_expand_to_popen,
                    dict_merge)
@@ -39,6 +39,7 @@ ARCHIVER = archives.TarGzArchiver
 
 # Suffix to use when making backups.
 BACKUP_SUFFIX = ".bak"
+
 
 class AppError(RuntimeError):
   pass
@@ -60,19 +61,25 @@ def _make_writable(path, silent=False):
 
 def _upload_file(command_template, local_path, remote_loc):
   popenargs = shell_expand_to_popen(command_template,
-                                    dict_merge(os.environ, {"REMOTE": remote_loc, "LOCAL": local_path}))
+                                    dict_merge(os.environ,
+                                               {"REMOTE": remote_loc,
+                                                "LOCAL": local_path}))
   log.info("uploading: %s", " ".join(popenargs))
   # TODO: Find a way to support force here (e.g. add or remove -f to s4cmd)
-  subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
+  subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT,
+                        stdin=DEV_NULL)
 
 
 def _download_file(command_template, remote_loc, local_path):
   with atomic_output_file(local_path, make_parents=True) as temp_target:
     popenargs = shell_expand_to_popen(command_template,
-                                      dict_merge(os.environ, {"REMOTE": remote_loc, "LOCAL": temp_target}))
+                                      dict_merge(os.environ,
+                                                 {"REMOTE": remote_loc,
+                                                  "LOCAL": temp_target}))
     log.info("downloading: %s", " ".join(popenargs))
     # TODO: Find a way to support force here.
-    subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT, stdin=DEV_NULL)
+    subprocess.check_call(popenargs, stdout=SHELL_OUTPUT, stderr=SHELL_OUTPUT,
+                          stdin=DEV_NULL)
 
 
 def _compress_dir(local_dir, archive_path, force=False):
@@ -81,7 +88,8 @@ def _compress_dir(local_dir, archive_path, force=False):
       log.info("deleting previous archive: %s", archive_path)
       os.unlink(archive_path)
     else:
-      raise AppError("Archive already in cache (has version changed?): %r" % archive_path)
+      raise AppError("Archive already in cache (has version changed?): %r" %
+                     archive_path)
   with atomic_output_file(archive_path) as temp_archive:
     make_parent_dirs(temp_archive)
     ARCHIVER.archive(local_dir, temp_archive)
@@ -101,8 +109,10 @@ def _decompress_dir(archive_path, target_path, force=False):
 
 def _rsync_dir(source_dir, target_dir, chmod=None):
   """
-  Use rsync to clone source_dir to target_dir. Preserves the original owners and permissions.
-  As an optimization, rsync also allows perms to be partly modified as files are synced.
+  Use rsync to clone source_dir to target_dir.
+  Preserves the original owners and permissions.
+  As an optimization, rsync also allows perms to be partly modified
+  as files are synced.
   """
   popenargs = ["rsync", "-a", "--delete"]
   if chmod:
@@ -116,9 +126,11 @@ def _rsync_dir(source_dir, target_dir, chmod=None):
 
 def _rmtree_fast(path, ignore_errors=False):
   """
-  Delete a file or directory. Uses rsync to delete directories, which is among the fastest
-  ways possible to delete large numbers of files. Note it can remove some read-only files.
-  See http://www.slashroot.in/which-is-the-fastest-method-to-delete-files-in-linux
+  Delete a file or directory. Uses rsync to delete directories, which
+  is among the fastest ways possible to delete large numbers of
+  files. Note it can remove some read-only files.
+
+  slashroot.in/which-is-the-fastest-method-to-delete-files-in-linux
   """
   if ignore_errors and not os.path.exists(path):
     return
@@ -132,9 +144,11 @@ def _rmtree_fast(path, ignore_errors=False):
 
 
 @log_calls
-def _install_from_cache(cache_path, target_path, install_method, force=False, make_backup=False):
+def _install_from_cache(cache_path, target_path, install_method,
+                        force=False, make_backup=False):
   """
-  Install a file or directory from cache, either symlinking, hardlinking, or copying.
+  Install a file or directory from cache, either symlinking,
+  hardlinking, or copying.
   """
 
   def clear_symlink():
@@ -173,10 +187,11 @@ def _install_from_cache(cache_path, target_path, install_method, force=False, ma
       # Try it and see if rsync is available.
       try:
         clear_symlink()
-        # Ensure we add write perms since the cache has read-only perms. Other perms will be preserved.
+        # Ensure we add write perms since the cache has read-only perms.
+        # Other perms will be preserved.
         _rsync_dir(cache_path, target_path, chmod="u+w")
-      except OSError as e:
-        log.info("rsync doesn't seem to be here (%s), so will copy instead", e)
+      except OSError as err:
+        log.info("rsync not found, will copy instead: %s", err)
         checked_remove()
         copytree_atomic(cache_path, target_path)
     else:
@@ -192,9 +207,10 @@ VERSION_END = "$"
 
 class FileCache(object):
   """
-  Manage uploading and downloading files to/from the cloud using a local cache to maintain copies.
-  Also seamlessly support directories by archiving them as compressed files.
-  The cache is not bounded and must be managed/cleaned up manually.
+  Manage uploading and downloading files to/from the cloud using a
+  local cache to maintain copies.  Also seamlessly support directories
+  by archiving them as compressed files.  The cache is not bounded and
+  must be managed/cleaned up manually.
   """
 
   version = "1"
@@ -226,8 +242,10 @@ class FileCache(object):
   @staticmethod
   def versioned_path(config, version, suffix=""):
     return os.path.join(config.remote_path,
-                        "%s%s%s%s" % (config.name, VERSION_SEP, version, VERSION_END),
-                        "%s%s" % (os.path.basename(config.name), suffix))
+                        "%s%s%s%s" %
+                        (config.name, VERSION_SEP, version, VERSION_END),
+                        "%s%s" %
+                        (os.path.basename(config.name), suffix))
 
   @staticmethod
   def pathify_remote_loc(remote_loc):
@@ -243,59 +261,82 @@ class FileCache(object):
                         self.versioned_path(config, version, suffix))
 
   def _upload(self, config, cached_path, version):
-    _upload_file(config.upload_command, cached_path, self.remote_loc(config, version))
+    _upload_file(config.upload_command, cached_path,
+                 self.remote_loc(config, version))
 
   @log_calls
   def publish(self, config, version, force=False):
-    # As precaution for users, we keep unarchived items in cache that may be symlinked to as read-only.
+    # As precaution for users, we keep unarchived items in cache
+    # that may be symlinked to as read-only.
     cached_path = self.cache_path(config, version)
     try:
       _make_writable(cached_path, silent=True)
-      self._publish_writable(config, version, force=force)
+      self._publish_writable(config, version, make_backup=config.make_backup,
+                             force=force)
     finally:
       _make_readonly(cached_path, silent=True)
 
-  def _publish_writable(self, config, version, force=False):
+  def _publish_writable_local_file(self, config, version,
+                                   local_path, cached_path,
+                                   make_backup=False):
+    remote_loc = self.remote_loc(config, version)
+
+    log.debug("installing to cache: %s -> %s", local_path, cached_path)
+    # For speed on large files, move it rather than copy.
+    # Also make it read-only, just as it will be after install.
+    movefile(local_path, cached_path, make_parents=True)
+    _upload_file(config.upload_command, cached_path, remote_loc)
+    log.info("installed to cache: %s -> %s", local_path, cached_path)
+    _install_from_cache(cached_path, local_path, config.install_method,
+                        force=False, make_backup=make_backup)
+    log.info("published file: %s", remote_loc)
+
+  def _publish_writable_local_dir(self, config, version,
+                                  local_path, cached_path,
+                                  force=False, make_backup=True):
+    cached_archive = self.cache_path(config, version, suffix=ARCHIVER.suffix)
+    remote_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
+
+    # We archive and then unarchive, to make sure we expand symlinks
+    # exactly the way a future installation would.
+    # TODO: This is usually what we want (think of relative symlinks
+    # like ../../foo), but we could make it an option.
+    log.debug("installing to cache: %s -> %s", local_path, cached_path)
+    _compress_dir(local_path, cached_archive, force=force)
+    _upload_file(config.upload_command, cached_archive, remote_loc)
+    _decompress_dir(cached_archive, cached_path, force=force)
+    # If everything has succeeded, we can safely delete the archive
+    # to save space.
+    os.unlink(cached_archive)
+    # Leave the previous version of the tree as a backup.
+    log.info("installed to cache: %s -> %s", local_path, cached_path)
+    _install_from_cache(cached_path, local_path, config.install_method,
+                        force=True, make_backup=make_backup)
+    log.info("published archive: %s", remote_loc)
+
+  def _publish_writable(self, config, version, make_backup, force=False):
     local_path = config.local_path
     cached_path = self.cache_path(config, version)
 
     if os.path.islink(local_path):
-      raise AppError("Cannot publish symlinks (is path already published?): %r" % local_path)
+      raise AppError("Cannot publish symlinks (path already published?): %r" %
+                     local_path)
 
     self.setup()
 
     # Directories are archived. Files are published as is.
     if os.path.isdir(local_path):
-      cached_archive = self.cache_path(config, version, suffix=ARCHIVER.suffix)
-      remote_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
-
-      # We archive and then unarchive, to make sure we expand symlinks exactly the way
-      # a future installation would.
-      # TODO: This is usually what we want (think of relative symlinks like ../../foo), but we could make it an option.
-      log.debug("installing to cache: %s -> %s", local_path, cached_path)
-      _compress_dir(local_path, cached_archive, force=force)
-      _upload_file(config.upload_command, cached_archive, remote_loc)
-      _decompress_dir(cached_archive, cached_path, force=force)
-      # If everything has succeeded, we can safely delete the archive to save space.
-      os.unlink(cached_archive)
-      # Leave the previous version of the tree as a backup.
-      log.info("installed to cache: %s -> %s", local_path, cached_path)
-      _install_from_cache(cached_path, local_path, config.install_method, force=True, make_backup=True)
-      log.info("published archive: %s", remote_loc)
+      self._publish_writable_local_dir(config, version,
+                                       local_path, cached_path,
+                                       force, make_backup)
     elif os.path.isfile(local_path):
-      remote_loc = self.remote_loc(config, version)
-
-      log.debug("installing to cache: %s -> %s", local_path, cached_path)
-      # For speed on large files, move it rather than copy.
-      # Also make it read-only, just as it will be after install.
-      movefile(local_path, cached_path, make_parents=True)
-      _upload_file(config.upload_command, cached_path, remote_loc)
-      log.info("installed to cache: %s -> %s", local_path, cached_path)
-      _install_from_cache(cached_path, local_path, config.install_method, force=False, make_backup=False)
-      log.info("published file: %s", remote_loc)
+      self._publish_writable_local_file(config, version,
+                                        local_path, cached_path,
+                                        make_backup)
     elif os.path.exists(local_path):
       # Not a file, dir, or symlink!
-      raise ValueError("Only files or directories can be published: %r" % local_path)
+      raise ValueError("Only files or directories can be published: %r" %
+                       local_path)
     else:
       raise ValueError("File not found: %r" % local_path)
 
@@ -305,26 +346,34 @@ class FileCache(object):
     cached_path = self.cache_path(config, version)
     if os.path.exists(cached_path):
       # It's a cached file or a cached directory and we've already unpacked it.
-      _install_from_cache(cached_path, config.local_path, config.install_method, force=force)
-      log.info("installed from cache (%s): %s -> %s", config.install_method.name, config.local_path, cached_path)
+      _install_from_cache(cached_path, config.local_path,
+                          config.install_method, force=force)
+      log.info("installed from cache (%s): %s -> %s",
+               config.install_method.name, config.local_path, cached_path)
     else:
       # First try it as a directory/archive.
-      remote_archive_loc = self.remote_loc(config, version, suffix=ARCHIVER.suffix)
-      cached_archive_path = self.cache_path(config, version, suffix=ARCHIVER.suffix)
+      remote_archive_loc = self.remote_loc(
+        config, version, suffix=ARCHIVER.suffix)
+      cached_archive_path = self.cache_path(
+        config, version, suffix=ARCHIVER.suffix)
       is_dir = True
-      # This could be cleaner, but it's nice to be data-driven and not require a config saying it's a dir or file.
-      log.debug("checking if it's a directory by seeing if archive suffix exits")
+      # This could be cleaner, but it's nice to be data-driven and not
+      # require a config saying it's a dir or file.
+      log.debug("checking for directory by seeing if archive suffix exists")
       try:
-        _download_file(config.download_command, remote_archive_loc, cached_archive_path)
+        _download_file(
+          config.download_command, remote_archive_loc, cached_archive_path)
       except subprocess.CalledProcessError:
-        log.debug("doesn't look like an archived directory, so treating it as a file")
+        log.debug("doesn't look like an archived directory: treating as file")
         is_dir = False
       if is_dir:
         log.info("downloaded published archive: %s", remote_archive_loc)
         _decompress_dir(cached_archive_path, cached_path, force=force)
-        # If everything has succeeded, we can safely delete the archive to save space.
+        # If everything has succeeded, we can safely delete the
+        # archive to save space.
         os.unlink(cached_archive_path)
-        log.info("installed directory: %s -> %s", config.local_path, cached_path)
+        log.info("installed directory: %s -> %s",
+                 config.local_path, cached_path)
       else:
         remote_loc = self.remote_loc(config, version)
         _download_file(config.download_command, remote_loc, cached_path)
@@ -332,7 +381,8 @@ class FileCache(object):
         log.info("installed file: %s -> %s", config.local_path, cached_path)
 
       _make_readonly(cached_path)
-      _install_from_cache(cached_path, config.local_path, config.install_method, force=force)
+      _install_from_cache(cached_path, config.local_path,
+                          config.install_method, force=force)
 
   @log_calls
   def purge(self):
@@ -343,7 +393,8 @@ class FileCache(object):
 
 def version_for(config):
   """
-  The version for an item is either the explicit version specified by the user, or the SHA1 hash of hashable file.
+  The version for an item is either the explicit version specified by
+  the user, or the SHA1 hash of hashable file.
   """
   bits = []
   if config.version_string:
@@ -354,9 +405,11 @@ def version_for(config):
   if config.version_command:
     log.debug("version command: %s", config.version_command)
     popenargs = shell_expand_to_popen(config.version_command, os.environ)
-    output = subprocess.check_output(popenargs, stderr=SHELL_OUTPUT, stdin=DEV_NULL).strip()
+    output = subprocess.check_output(
+      popenargs, stderr=SHELL_OUTPUT, stdin=DEV_NULL).strip()
     if not configs._CONFIG_VERSION_RE.match(output):
-      raise configs.ConfigError("Invalid version output from version command: %r" % output)
+      raise configs.ConfigError(
+        "Invalid version output from version command: %r" % output)
     bits.append(output)
 
   return "-".join(bits)
@@ -383,10 +436,13 @@ def select_configs(config_list, items):
   return config_list
 
 
-def run_command(command, override_path=None, overrides=None, force=False, items=None):
+def run_command(command, override_path=None, overrides=None,
+                force=False, items=None):
   # Nondestructive commands that don't require cache.
   if command == Command.configs:
-    config_list = select_configs(configs.load(override_path=override_path, overrides=overrides), items)
+    config_list = select_configs(
+      configs.load(override_path=override_path, overrides=overrides),
+      items)
     configs.print_configs(config_list)
 
   # Destructive commands that require cache but not configs.
@@ -396,7 +452,9 @@ def run_command(command, override_path=None, overrides=None, force=False, items=
 
   # Commands that require cache and configs.
   else:
-    config_list = select_configs(configs.load(override_path=override_path, overrides=overrides), items)
+    config_list = select_configs(
+      configs.load(override_path=override_path, overrides=overrides),
+      items)
 
     file_cache = FileCache(configs.set_up_cache_dir())
 
@@ -425,7 +483,7 @@ def run_command(command, override_path=None, overrides=None, force=False, items=
 #   and a flag failover_publish indicating whether to publish
 # - command to unpublish all but most recent n versions of a resource?
 # - support compressing files as well as archives
-# - consider a pax-based hardlink tree copy option (since pax is cross platform, unlike cp's options)
+# - consider pax-based hardlink tree copy option (more cross platform than cp)
 # - init command to generate a config
 # - "--offline" mode for install (i.e. will fail if it has to download)
 # - test out more custom transport commands (s3cmd, awscli, wget, etc.)
