@@ -175,13 +175,14 @@ def _parse_and_validate(raw_config_list):
     try:
       raw["install_method"] = InstallMethod[raw["install_method"]]
     except KeyError:
-      raise ConfigError("invalid copy type: %s" % raw["install_method"])
+      raise ConfigError("invalid install_method: %s" % raw["install_method"])
 
-    # Parse booleans.
+    # Parse booleans. Values True and False may already be converted.
     try:
-      raw["make_backup"] = raw["make_backup"]
+      if (type(raw["make_backup"]) is str):
+        raw["make_backup"] = raw["make_backup"].lower() in ("on", "t", "true", "y", "yes")
     except KeyError:
-      raise ConfigError("invalid copy type: %s" % raw["make_backup"])
+      raise ConfigError("invalid make_backup: %s" % raw["make_backup"])
 
     items.append(Config(**raw))
 
